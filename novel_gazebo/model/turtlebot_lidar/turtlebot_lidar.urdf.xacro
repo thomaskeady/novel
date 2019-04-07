@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!--
+    - Base      : kobuki
+    - Stacks    : hexagons
+    - 3d Sensor : kinect
+    This file is mainly copied from turtlebot_description
+-->    
+<robot name="turtlebot_lidar" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <xacro:include filename="$(find turtlebot_description)/urdf/turtlebot_common_library.urdf.xacro" />
+  <xacro:include filename="$(find kobuki_description)/urdf/kobuki.urdf.xacro" />
+  <xacro:include filename="$(find turtlebot_description)/urdf/stacks/hexagons.urdf.xacro"/>
+  <xacro:include filename="$(find turtlebot_description)/urdf/sensors/kinect.urdf.xacro"/>
+  <xacro:include filename="$(find novel_gazebo)/model/turtlebot_lidar/sensors/lidar.urdf.xacro"/>
+
+  <kobuki/>
+  <stack_hexagons parent="base_link"/>
+  <sensor_kinect  parent="base_link"/>
+  <sensor_lidar parent="base_link"/>
+</robot>
