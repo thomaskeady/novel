@@ -1,0 +1,5 @@
+geometry_msgs/PoseWithCovariance pose
+# Optional
+geometry_msgs/TwistWithCovariance twist
+
+string classification
