@@ -1,0 +1,18 @@
+<launch>  
+  <!-- adapted from aruco_detect package -->
+
+  <!-- namespace for camera input -->
+  <arg name="camera" default="camera/"/>
+  <arg name="image" default="rgb/image_raw"/>
+  <arg name="camera_info" default="rgb/camera_info"/>
+  <arg name="transport" default="compressed"/>
+
+  <node pkg="detect_aruco" name="aruco_detect"
+    type="aruco_detect" output="screen" respawn="false">
+    <param name="image_transport" value="$(arg transport)"/>
+
+    <remap from="/camera/compressed"
+        to="$(arg camera)/$(arg image)/$(arg transport)"/>
+    <remap from="/camera_info" to="$(arg camera)/camera_info"/>
+  </node>
+</launch>

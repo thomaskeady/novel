@@ -1,0 +1,17 @@
+<sdf version="1.4">
+    <world name="default">
+        <include>
+            <uri>model://ground_plane</uri>
+        </include>
+        <include>
+            <uri>model://marker0</uri>
+            <name>marker0</name>
+            <pose>2 -0.1 0.3 0 0 0</pose>
+        </include>
+        <include>
+            <uri>model://marker1</uri>
+            <name>marker1</name>
+            <pose>2 0.3 0.4 0 0 0</pose>
+        </include>
+    </world>
+</sdf>
