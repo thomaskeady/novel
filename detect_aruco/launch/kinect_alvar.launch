@@ -17,15 +17,13 @@
         <remap from="camera_info"   to="$(arg cam_info_topic)" />
     </node>
 
-    <env name="GAZEBO_MODEL_PATH" value="$(find detect_aruco)/gazebo/models"/>
+    <env name="GAZEBO_MODEL_PATH" value="$(find novel_gazebo)/model"/>
     <include file ="$(find gazebo_ros)/launch/empty_world.launch">
         <arg name="world_name" value="$(find detect_aruco)/gazebo/worlds/AR.world"/>
     </include>
 
-    <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot_description)/robots/kobuki_hexagons_kinect.urdf.xacro" />
-
-    <node name="spawn_turtlebot_model" pkg="gazebo_ros" type="spawn_model"
-          args="$(optenv ROBOT_INITIAL_POSE) -unpause -urdf -param robot_description -model mobile_base"/>
+    <param name="robot_description" command="$(find xacro)/xacro --inorder $(find novel_gazebo)/model/turtlebot_lidar/turtlebot_lidar.urdf.xacro"/>
+    <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -model turtlebot_lidar" />
 
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" />
 
