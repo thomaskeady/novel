@@ -15,7 +15,7 @@ The purpose of this node is to take the estimated robot pose and the known map o
 #include "geometry_msgs/PoseWithCovarianceStamped.h"
 #include "std_msgs/Int8MultiArray.h"
 
-class ExpectedScanNode
+class ExpectedScanGenerator
 {
 private:
 	ros::NodeHandle &nh_;
@@ -36,27 +36,35 @@ private:
 	//std_msgs::Int8MultiArray grid;
 	//ros::int8 grid;
 	std::vector<signed char, std::allocator<signed char> > grid;
+	
+	// Append "stamped" if want header as well
+	geometry_msgs::PoseWithCovariance pose;
+
+	bool map_known; // False before any messages received
+	bool pose_known;
 
 public:
-	ExpectedScanNode(ros::NodeHandle& nh) :
+	ExpectedScanGenerator(ros::NodeHandle& nh) :
 		nh_(nh),
 		
 
 		// Messages
 		//grid(NULL),
+		//pose(NULL),
 
 		// Publishers
 		scan_pub(nh_.advertise<sensor_msgs::LaserScan>("expected_scan", 100)),
 
 		// Subscribers
-		grid_sub(nh_.subscribe("nav_msgs/Occupancy_Grid", 100, &ExpectedScanNode::ogCb, this)),
-		pose_sub(nh_.subscribe("geometry_msgs/PoseWithCovarianceStamped", 100, &ExpectedScanNode::poseCb, this))
+		grid_sub(nh_.subscribe("nav_msgs/Occupancy_Grid", 100, &ExpectedScanGenerator::ogCb, this)),
+		pose_sub(nh_.subscribe("geometry_msgs/PoseWithCovarianceStamped", 100, &ExpectedScanGenerator::poseCb, this)),
 
 
 		// Other
 		//map_metadata(NULL),
 		//grid(NULL)
-
+		map_known(false),
+		pose_known(false)
 
 	{
 		ROS_INFO("Initialized ExpectedScanNode");
@@ -67,16 +75,28 @@ public:
 
 	void ogCb(const nav_msgs::OccupancyGrid::ConstPtr& msg) 
 	{
+		map_known = true;
 		map_metadata = msg->info;
 		grid = msg->data;
 	}
 
-	// Lets redo the scan every time the pose is published 
+	// For now just store the data and run it at a constant rate in the main loop 
 	void poseCb(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg) 
 	{
-		
+		pose_known = true;
+		pose = msg->pose;
 	}
 
+
+	bool checkSubscribedTopics() 
+	{
+		return 	!map_known && !pose_known;
+	}
+
+	void generateAndPublishScan() 
+	{
+		ROS_INFO("Not implemented yet lol");
+	}
 
 
 };
@@ -89,10 +109,23 @@ int main (int argc, char** argv)
 	
 	//ros::Subscriber grid_sub = nh.subscribe("nav_msgs/OccupancyGrid", 100, ogCb); // Might need to rename these to match topic names
 	//ros::Subscriber scan_sub = nh.subscribe("sensor_msgs/LaserScan");
-	//ros::Subscriber pose_sub = nh.subscribe("geometry_msgs/PoseWithCovarianceStamped", 100, poseCb);
+	//ros::Subscriber pose_sub = nh.subscribe("geometry_msgs/PoseWithCovarianceStamped", 100, poseCb)	
 	
-	nav_msgs::OccupancyGrid grid;
-	
+	ExpectedScanGenerator myGenerator = ExpectedScanGenerator(nh);
+
+	ROS_INFO("Waiting for one pose message and one map message");
+
+	ros::Rate wait(2);
+	while (!myGenerator.checkSubscribedTopics()) { wait.sleep(); };
+
+	ros::Rate r(10);
+	while (ros::ok()) 
+	{
+		myGenerator.generateAndPublishScan();
+
+		r.sleep();
+	}
+
 
 	
 }
