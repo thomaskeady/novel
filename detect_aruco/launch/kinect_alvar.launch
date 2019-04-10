@@ -5,7 +5,6 @@
     <arg name="cam_image_topic" default="/camera/depth/points" />
     <arg name="cam_info_topic" default="/camera/depth/camera_info" />
     <arg name="output_frame" default="camera_link" />
-    <!-- <arg name="output_frame" default="base_link" /> -->
 
     <node name="ar_track_alvar" pkg="ar_track_alvar" type="individualMarkers" respawn="false" output="screen">
         <param name="marker_size"           type="double" value="$(arg marker_size)" />
@@ -18,6 +17,9 @@
     </node>
 
     <env name="GAZEBO_MODEL_PATH" value="$(find novel_gazebo)/model"/>
+    <include file ="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="world_name" value="$(find detect_aruco)/gazebo/worlds/AR.world"/>
+    </include>
     
     <arg name="rvizconfig" default="$(find detect_aruco)/rviz/aruco_test_env.rviz"/>
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" required="True"/>
