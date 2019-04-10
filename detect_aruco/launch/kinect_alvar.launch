@@ -18,15 +18,7 @@
     </node>
 
     <env name="GAZEBO_MODEL_PATH" value="$(find novel_gazebo)/model"/>
-    <include file ="$(find gazebo_ros)/launch/empty_world.launch">
-        <arg name="world_name" value="$(find detect_aruco)/gazebo/worlds/AR.world"/>
-    </include>
-
-    <param name="robot_description" command="$(find xacro)/xacro --inorder $(find novel_gazebo)/model/turtlebot_lidar/turtlebot_lidar.urdf.xacro"/>
-    <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -model turtlebot_lidar" />
-
-    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" />
-
+    
     <arg name="rvizconfig" default="$(find detect_aruco)/rviz/aruco_test_env.rviz"/>
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" required="True"/>
 
