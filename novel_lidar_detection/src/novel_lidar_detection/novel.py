@@ -1,18 +1,19 @@
 import rospy
 from novel_msgs.msg import NovelObject, NovelObjectArray
 from sensor_msgs.msg import LaserScan
+from geometry_msgs import PoseWithCovarianceStamped, Pose, Point
 import numpy as np
 import math
 class NovelLidarDetection(object):
     def __init__(self, 
-        in_scan_topic, 
-        expected_scan_topic, 
-        out_scan_topic, 
-        detected_object_topic, 
-        pose_topic,
-        threshold, 
-        window_size, 
-        window_step):
+        in_scan_topic='/scan', 
+        expected_scan_topic='/expected_scan', 
+        out_scan_topic='filtered_scan', 
+        detected_object_topic='/lidar_objects', 
+        pose_topic='/amcl_pose',
+        threshold=1, 
+        window_size=3, 
+        window_step=1):
         """
         Initializes object 
 
@@ -37,7 +38,7 @@ class NovelLidarDetection(object):
         """
         rospy.Subscriber(in_scan_topic, LaserScan, self.ls_callback)
         rospy.Subscriber(expected_scan_topic, LaserScan, self.els_callback)
-
+        rospy.Subscriber(amcl_pose_topic, PoseWithCovarianceStamped, self.pose_callback)
         self.out_scan_pub = rospy.Publisher(out_scan_topic, LaserScan)
         self.detected_object_pub = rospy.Publisher(detected_object_topic, NovelObjectArray)
 
@@ -96,13 +97,29 @@ class NovelLidarDetection(object):
                     com = math.floor((pos_begin+pos_end)/2)
                     detected_objects_position.append(com)
                     in_object = False
+        msg = NovelObjectArray
         for o,i in enumerate(detected_objects_position):
             m = NovelObject
-            m.pose.x = 
+            p = self.calculate_position_from_index(o)
+            m.pose.pose = p
+            # Make this covariance better?
+            m.pose.covariance = np.zeros(4).flatten() 
+            m.id = i
+            msg.objects.append(m)
+        self.detected_object_pub.publish(msg)
+        
+        # TODO estimate 
 
-
-
-
+    def calculate_position_from_index(self, median_index, last_scan):
+        z = self.last_pose.z
+        rad = median_index/len(last_scan) * 2 * math.pi
+        x = last_scan[median_index] * math.cos(rad)
+        y = last_scan[median_index] * math.sin(rad)
+        return Pose(Point(x,y,z))
+    def pose_callback(self, msg):
+        self.last_pose = msg.pose.pose
+        self.last_pose_covariance = msg.pose.covariance
+        self.last_pose_header = msg.header
     def ls_callback(self, msg):
         self.last_scan = np.array(msg.ranges)
     def els_callback(self, msg):
