@@ -56,11 +56,10 @@
   <depend>tf2_ros</depend>
   <depend>tf2</depend>
   <depend>visualization_msgs</depend>
-  <depend>image_transport</depend>
   <depend>sensor_msgs</depend>
-  <depend>cv_bridge</depend>
-  <depend>opencv3</depend>
-  <depend>fiducial_msgs</depend>
+  <depend>ar_track_alvar</depend>
+  <depend>ar_track_alvar_msgs</depend>
+  <depend>novel_msgs</depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
