@@ -9,16 +9,19 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
   tf2
   visualization_msgs
-  image_transport
-  cv_bridge
   sensor_msgs
   std_msgs
-  fiducial_msgs
+  ar_track_alvar
+  ar_track_alvar_msgs
+  novel_msgs
 )
 
 find_package(OpenCV REQUIRED)
 
-catkin_package(INCLUDE_DIRS DEPENDS OpenCV)
+catkin_package(INCLUDE_DIRS DEPENDS OpenCV )
+catkin_package(
+  CATKIN_DEPENDS novel_msgs
+)
 
 ###########
 ## Build ##
@@ -29,19 +32,18 @@ add_definitions(-std=c++11)
 include_directories(${catkin_INCLUDE_DIRS})
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-add_executable(aruco_detect src/aruco_detect.cpp)
+add_executable(detect_aruco src/detect_marker.cpp)
 
-add_dependencies(aruco_detect ${${PROJECT_NAME}_EXPORTED_TARGETS}
-                 ${catkin_EXPORTED_TARGETS})
+add_dependencies(detect_aruco ${catkin_EXPORTED_TARGETS})
 
-target_link_libraries(aruco_detect ${catkin_LIBRARIES} ${OpenCV_LIBS})
+target_link_libraries(detect_aruco ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 #############
 ## Install ##
 #############
 
 ## Mark executables and/or libraries for installation
-install(TARGETS aruco_detect
+install(TARGETS detect_aruco
    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
