@@ -16,6 +16,7 @@ The purpose of this node is to take the estimated robot pose and the known map o
 #include "sensor_msgs/LaserScan.h"
 #include "geometry_msgs/PoseWithCovarianceStamped.h"
 //#include "std_msgs/Int8MultiArray.h"
+#include <cmath>
 
 class ExpectedScanGenerator
 {
@@ -75,6 +76,7 @@ public:
 		max_angle(360),
 		degs_per_scan(0.5),
 		points_per_scan((int)(max_angle-min_angle)/degs_per_scan),
+		range(10), // meters
 
 		// Other
 		//map_metadata(NULL),
@@ -130,10 +132,21 @@ public:
 		// Adjust for vehicle angle
 		map_scan_angle = curr_scan_angle + yaw; 
 
-		while (curr_scan_angle < min_angle) 
+		int hypotenuse = 1; // Length (in map pixels) that the simulated scan looks ahead by at each test
+		int max_hyp = range/map_metadata.resolution;
+
+		//while (curr_scan_angle < min_angle) 
+		for (int i = 0; i < points_per_scan; ++i)
 		{
-			// Need to add pose angle of robot;
-			
+			// Keep testing ahead along angle until hits range or hits occupied grid square
+			for (int step = 1; step < max_hyp; ++step) 
+			{
+				
+			}
+
+
+			// When done,
+			map_scan_angle += degs_per_scan;
 		}
 
 		
