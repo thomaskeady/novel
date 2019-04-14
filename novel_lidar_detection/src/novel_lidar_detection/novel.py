@@ -11,9 +11,9 @@ class NovelLidarDetection(object):
         out_scan_topic='filtered_scan', 
         detected_object_topic='/lidar_objects', 
         amcl_pose_topic='/amcl_pose',
-        threshold=1, 
+        threshold=0.05, 
         window_size=3, 
-        window_step=1):
+        window_step=2):
         """
         Initializes object 
 
@@ -46,6 +46,7 @@ class NovelLidarDetection(object):
         self.window_size = window_size
         self.window_step = window_step
         self.threshold = threshold
+        self.range_max = 1
     def window_stack(self, a):
         '''
         Function from here:
@@ -65,7 +66,7 @@ class NovelLidarDetection(object):
         '''
         wsz = self.window_size
         wsp = self.window_step
-        num_windows = math.ceil(len(a)/wsz)
+        num_windows = math.floor(float(len(a) - wsz + 1)/wsp)
         indexer = np.arange(wsz)[None, :] + wsp*np.arange(num_windows)[:, None]
         indexer = indexer.astype(np.int)
         return (a[indexer], indexer)
@@ -82,7 +83,8 @@ class NovelLidarDetection(object):
         ew, ew_i = self.window_stack(self.last_expected)
         detected_objects = np.zeros(self.last_scan.shape, dtype=np.bool)
         for s,e,i in zip(sw, ew, sw_i):
-            er = np.correlate(s,e)
+            # er = np.correlate(s,e)
+            er = ((s-e)**2).mean()
             if er > self.threshold:
                 detected_objects[i] = True
         # Calculate center of mass of objects
@@ -119,15 +121,17 @@ class NovelLidarDetection(object):
         z = self.last_pose.position.z
         last_scan = self.last_scan
         rad = float(median_index)/len(last_scan) * 2 * math.pi
-        x = last_scan[median_index] * math.cos(rad)
-        y = last_scan[median_index] * math.sin(rad)
+        x = last_scan[median_index] * math.cos(rad) * self.range_max
+        y = last_scan[median_index] * math.sin(rad) * self.range_max
         return Pose(position=Point(x,y,z))
     def pose_callback(self, msg):
         self.last_pose = msg.pose.pose
         self.last_pose_covariance = msg.pose.covariance
         self.last_pose_header = msg.header
     def ls_callback(self, msg):
-        self.last_scan = np.array(msg.ranges)
+        self.range_max = msg.range_max
+        self.last_scan = np.array(msg.ranges)/self.range_max
+        
     def els_callback(self, msg):
-        self.last_expected = np.array(msg.ranges)
+        self.last_expected = np.array(msg.ranges)/self.range_max
     

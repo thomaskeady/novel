@@ -20,8 +20,8 @@ if __name__ == "__main__":
     expected_distance = 10
 
     rng = np.ones((360,))*expected_distance
-    s_msg = LaserScan()
-    e_msg = LaserScan()
+    s_msg = LaserScan(range_max=expected_distance)
+    e_msg = LaserScan(range_max=expected_distance)
     e_msg.ranges = list(rng)
     rng[180:190] = expected_distance/2
     s_msg.ranges = list(rng)
