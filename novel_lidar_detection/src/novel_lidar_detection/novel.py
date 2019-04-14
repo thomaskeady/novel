@@ -1,7 +1,7 @@
 import rospy
 from novel_msgs.msg import NovelObject, NovelObjectArray
 from sensor_msgs.msg import LaserScan
-from geometry_msgs import PoseWithCovarianceStamped, Pose, Point
+from geometry_msgs.msg import PoseWithCovarianceStamped, Pose, Point
 import numpy as np
 import math
 class NovelLidarDetection(object):
