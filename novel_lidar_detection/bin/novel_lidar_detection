@@ -10,11 +10,12 @@ if __name__ == "__main__":
     for a in args:
         try:
             val = rospy.get_param(a)
+            argv[a] = val
         except KeyError:
-            val = None
-        argv[a] = val
+            pass
+        
 
-    hz_rate = rospy.get_param('rate')
+    hz_rate = rospy.get_param('rate', 100)
     N = NovelLidarDetection(**argv)
     r = rospy.Rate(hz_rate)
     while not rospy.is_shutdown():
