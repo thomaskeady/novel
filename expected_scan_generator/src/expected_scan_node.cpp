@@ -155,11 +155,11 @@ public:
 
 			for (int step = 1; step < max_hyp; ++step) 
 			{
-				ROS_INFO("Per step");
+				//ROS_INFO("Per step");
 
 				// POSE IS IN METERS, STEPS ARE IN 0.05 METERS (one per cell, =resolution)
-				int x_coord = (int)round(pose.pose.position.x/0.05 + std::sin(step)); // Need to round them individually or only after? I think after but confirm TODO
-				int y_coord = (int)round(pose.pose.position.y/0.05 + std::cos(step));
+				int x_coord = (int)round(pose.pose.position.x/0.05 + std::cos(map_scan_angle)*step); // Need to round them individually or only after? I think after but confirm TODO
+				int y_coord = (int)round(pose.pose.position.y/0.05 + std::sin(map_scan_angle)*step); // Check angle units TODO
 				
 				//if (grid[] > 
 				//ROS_INFO("OG val of (%d, %d): %d", x_coord, y_coord, grid[(y_coord-1)*map_metadata.width + x_coord]);
