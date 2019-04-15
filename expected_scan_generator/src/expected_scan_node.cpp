@@ -69,23 +69,23 @@ public:
 		scan_pub(nh_.advertise<sensor_msgs::LaserScan>("expected_scan", 100)),
 
 		// Subscribers
-		//grid_sub(nh_.subscribe("nav_msgs/Occupancy_Grid", 100, &ExpectedScanGenerator::ogCb, this)),
-		//pose_sub(nh_.subscribe("geometry_msgs/PoseWithCovarianceStamped", 100, &ExpectedScanGenerator::poseCb, this)),
 		grid_sub(nh_.subscribe("map", 100, &ExpectedScanGenerator::ogCb, this)),
 		pose_sub(nh_.subscribe("amcl_pose", 100, &ExpectedScanGenerator::poseCb, this)),
 		//robot_state_pub(nh_.subscribe("
 
 		min_angle(-3.14),
 		max_angle(3.14),
-		points_per_scan(1),
-		angle_increment((min_angle - max_angle)/points_per_scan),
-		range(1), // meters
+		points_per_scan(4),
+		//angle_increment((float)std::abs(min_angle - max_angle)/(float)points_per_scan),
+		range(0.5), // meters
 
 		// Other
 		map_known(false),
 		pose_known(false)
 
 	{
+		angle_increment = std::abs(min_angle - max_angle)/(float)points_per_scan;
+
 		ROS_INFO("Initialized ExpectedScanNode");
 	}
 
@@ -141,17 +141,15 @@ public:
 		/*ROS_INFO("resolution = %.15f", map_metadata.resolution);
 		int test = ceil(map_metadata.resolution);
 		ROS_INFO("resolution = %d", test);*/
-		ROS_INFO("max_hyp = %d", max_hyp);
+		//ROS_INFO("max_hyp = %d\nmin_angle = %f\nmax_angle = %f\npoints_per_scan = %d\nangle_increment = %f\ncalc = %f", max_hyp, min_angle, max_angle, points_per_scan, angle_increment, std::abs(min_angle - max_angle)/(float)points_per_scan);
 
 
 		//while (curr_scan_angle < min_angle) 
 		for (int i = 0; i < points_per_scan; ++i)
 		{
 			// Keep testing ahead along angle until hits range or hits occupied grid square
-
-			//int hypotenuse = 1; // Length (in map pixels) that the simulated scan looks ahead by at each test // now replaced with step in loop
-					
-			ROS_INFO("per scan");
+			
+			ROS_INFO("per scan (map_scan_angle = %f, angle_increment = %.15f)", map_scan_angle, angle_increment);
 
 			for (int step = 1; step < max_hyp; ++step) 
 			{
@@ -162,8 +160,9 @@ public:
 				int y_coord = (int)round(pose.pose.position.y/0.05 + std::sin(map_scan_angle)*step); // Check angle units TODO
 				
 				//if (grid[] > 
-				//ROS_INFO("OG val of (%d, %d): %d", x_coord, y_coord, grid[(y_coord-1)*map_metadata.width + x_coord]);
-				ROS_INFO("looking at (%d, %d)", x_coord, y_coord);
+				ROS_INFO("grid length: %d\tindex: %d", map_metadata.width*map_metadata.height, (y_coord-1)*map_metadata.width + x_coord);
+				ROS_INFO("OG val of (%d, %d): %d", x_coord, y_coord, grid[(y_coord-1)*map_metadata.width + x_coord]);
+				//ROS_INFO("looking at (%d, %d)", x_coord, y_coord);
 			}
 
 
