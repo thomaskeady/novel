@@ -25,6 +25,7 @@ private:
 	
 	// Messages
 	//nav_msgs::OccupancyGrid* grid;
+	sensor_msgs::LaserScan to_publish;
 
 	// Publishers
 	ros::Publisher scan_pub;
@@ -36,7 +37,7 @@ private:
 
 	// Other
 	nav_msgs::MapMetaData map_metadata;
-	float map_resolution; // Since its empty in hte messages *eye roll*
+	float map_resolution; // Since its empty in hte messages *eye roll* (m/cell)
 	//std_msgs::Int8MultiArray grid;
 	//ros::int8 grid;
 	std::vector<signed char, std::allocator<signed char> > grid;
@@ -63,7 +64,6 @@ public:
 		
 
 		// Messages
-		map_resolution(0),
 
 		// Publishers
 		scan_pub(nh_.advertise<sensor_msgs::LaserScan>("expected_scan", 100)),
@@ -73,11 +73,13 @@ public:
 		pose_sub(nh_.subscribe("amcl_pose", 100, &ExpectedScanGenerator::poseCb, this)),
 		//robot_state_pub(nh_.subscribe("
 
+
+		map_resolution(0.05), // hardcoded for now
 		min_angle(-3.14),
 		max_angle(3.14),
 		points_per_scan(100),
 		//angle_increment((float)std::abs(min_angle - max_angle)/(float)points_per_scan),
-		range(0.5), // meters
+		range(2), // meters
 
 		// Other
 		map_known(false),
@@ -85,6 +87,14 @@ public:
 
 	{
 		angle_increment = std::abs(min_angle - max_angle)/(float)points_per_scan;
+
+		to_publish.angle_min = min_angle;
+		to_publish.angle_max = max_angle;
+		to_publish.angle_increment = angle_increment;
+		to_publish.time_increment = 0;
+		to_publish.scan_time = 0.01; // Get this from slamtec for the A2M8
+		to_publish.range_max = range;
+		to_publish.range_min = 0;
 
 		ROS_INFO("Initialized ExpectedScanNode");
 	}
@@ -136,45 +146,58 @@ public:
 		// Adjust for vehicle angle
 		map_scan_angle = curr_scan_angle + yaw; 
 
-		int max_hyp = range/0.05; // message member variable is 0?? Read from RVIZ
+		int max_hyp = range/map_resolution; // message member variable is 0?? Read from RVIZ
 		//int max_hyp = range/map_metadata.resolution;
 		/*ROS_INFO("resolution = %.15f", map_metadata.resolution);
 		int test = ceil(map_metadata.resolution);
 		ROS_INFO("resolution = %d", test);*/
 		//ROS_INFO("max_hyp = %d\nmin_angle = %f\nmax_angle = %f\npoints_per_scan = %d\nangle_increment = %f\ncalc = %f", max_hyp, min_angle, max_angle, points_per_scan, angle_increment, std::abs(min_angle - max_angle)/(float)points_per_scan);
-
+		std::vector<float> ranges(points_per_scan);
 
 		//while (curr_scan_angle < min_angle) 
 		for (int i = 0; i < points_per_scan; ++i)
 		{
 			// Keep testing ahead along angle until hits range or hits occupied grid square
 			
-			ROS_INFO("per scan (map_scan_angle = %f, angle_increment = %.15f)", map_scan_angle, angle_increment);
+			//ROS_INFO("per scan (map_scan_angle = %f, angle_increment = %.15f)", map_scan_angle, angle_increment);
 
-			for (int step = 1; step < max_hyp; ++step) 
+			int step = 0; // Declare step at this scope so can push it to laserscan msg later
+
+			// If need more distance precision, make steps smaller (shoudln't need this, steps proportional to grid size)
+			for (step = 1; step < max_hyp; ++step) 
 			{
 				//ROS_INFO("Per step");
 
 				// POSE IS IN METERS, STEPS ARE IN 0.05 METERS (one per cell, =resolution)
-				int x_coord = (int)round(pose.pose.position.x/0.05 + std::cos(map_scan_angle)*step); // Need to round them individually or only after? I think after but confirm TODO
-				int y_coord = (int)round(pose.pose.position.y/0.05 + std::sin(map_scan_angle)*step); // Check angle units TODO
+				int x_coord = (int)round((pose.pose.position.x-map_metadata.origin.position.x)/map_resolution + std::cos(map_scan_angle)*step); // Need to round them individually or only after? I think after but confirm TODO
+				int y_coord = (int)round((pose.pose.position.y-map_metadata.origin.position.y)/map_resolution + std::sin(map_scan_angle)*step); // Check angle units TODO
 				
-				int index = (y_coord-1)*map_metadata.width + x_coord;
-				ROS_INFO("Index: %d", index);		
-				//if (grid[] > 
+				int index = (y_coord)*map_metadata.width + x_coord;
+				//ROS_INFO("Index: %d", index);		
 				//ROS_INFO("grid length: %d\tindex: %d", map_metadata.width*map_metadata.height, index); // What to do when y_coord is 0?? Are you indexing wrong?
-				ROS_INFO("OG val of (%d, %d): %d\tindex: %d", x_coord, y_coord, grid[index], index);
+				//ROS_INFO("OG val of (%d, %d): %d\tindex: %d", x_coord, y_coord, grid[index], index);
 				//ROS_INFO("looking at (%d, %d)", x_coord, y_coord);
+	
+				if (grid[index] > 50)  // 100 means occupied
+				{
+					break;
+				} // Otherwise, inf? leave at max for now
+
 			}
+
+			ranges[i] = step*map_resolution;
+			
 
 
 			// When done,
 			map_scan_angle += angle_increment;
 		}
 
+		// Now publish
 		
-		
-		
+		to_publish.ranges = ranges;
+
+		scan_pub.publish(to_publish);
 
 
 	}
@@ -215,8 +238,8 @@ int main (int argc, char** argv)
 	ros::Rate r(10);
 	while (ros::ok()) 
 	{
+		ros::spinOnce();
 		myGenerator.generateAndPublishScan();
-
 		r.sleep();
 	}
 
