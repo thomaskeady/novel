@@ -75,7 +75,7 @@ public:
 
 		min_angle(-3.14),
 		max_angle(3.14),
-		points_per_scan(4),
+		points_per_scan(100),
 		//angle_increment((float)std::abs(min_angle - max_angle)/(float)points_per_scan),
 		range(0.5), // meters
 
@@ -159,9 +159,11 @@ public:
 				int x_coord = (int)round(pose.pose.position.x/0.05 + std::cos(map_scan_angle)*step); // Need to round them individually or only after? I think after but confirm TODO
 				int y_coord = (int)round(pose.pose.position.y/0.05 + std::sin(map_scan_angle)*step); // Check angle units TODO
 				
+				int index = (y_coord-1)*map_metadata.width + x_coord;
+				ROS_INFO("Index: %d", index);		
 				//if (grid[] > 
-				ROS_INFO("grid length: %d\tindex: %d", map_metadata.width*map_metadata.height, (y_coord-1)*map_metadata.width + x_coord);
-				ROS_INFO("OG val of (%d, %d): %d", x_coord, y_coord, grid[(y_coord-1)*map_metadata.width + x_coord]);
+				//ROS_INFO("grid length: %d\tindex: %d", map_metadata.width*map_metadata.height, index); // What to do when y_coord is 0?? Are you indexing wrong?
+				ROS_INFO("OG val of (%d, %d): %d\tindex: %d", x_coord, y_coord, grid[index], index);
 				//ROS_INFO("looking at (%d, %d)", x_coord, y_coord);
 			}
 
