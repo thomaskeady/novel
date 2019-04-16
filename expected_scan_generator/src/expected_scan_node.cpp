@@ -96,6 +96,8 @@ public:
 		to_publish.range_max = range;
 		to_publish.range_min = 0;
 
+		to_publish.header.frame_id = "/camera_depth_frame";
+
 		ROS_INFO("Initialized ExpectedScanNode");
 	}
 
