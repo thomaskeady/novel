@@ -4,6 +4,7 @@ from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import PoseWithCovarianceStamped, Pose, Point
 import numpy as np
 import math
+from copy import deepcopy
 class NovelLidarDetection(object):
     def __init__(self, 
         in_scan_topic='/scan', 
@@ -114,7 +115,14 @@ class NovelLidarDetection(object):
             m.id = i
             msg.detected_objects.append(m)
         self.detected_object_pub.publish(msg)
-        
+        # Publish filtered laser scan
+        msg = deepcopy(self.last_scan_msg)
+        u_range = np.array(msg.ranges)
+        real_expected = self.last_expected*self.range_max
+        u_range[detected_objects] = real_expected[detected_objects]
+        msg.ranges = list(u_range)
+        self.out_scan_pub.publish(msg)
+
         
 
     def calculate_position_from_index(self, median_index):
@@ -131,7 +139,6 @@ class NovelLidarDetection(object):
     def ls_callback(self, msg):
         self.range_max = msg.range_max
         self.last_scan = np.array(msg.ranges)/self.range_max
-        
+        self.last_scan_msg = msg
     def els_callback(self, msg):
         self.last_expected = np.array(msg.ranges)/self.range_max
-    

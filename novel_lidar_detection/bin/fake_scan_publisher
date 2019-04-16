@@ -24,6 +24,7 @@ if __name__ == "__main__":
     e_msg = LaserScan(range_max=expected_distance)
     e_msg.ranges = list(rng)
     rng[180:190] = expected_distance/2
+    rng[160:170] = expected_distance/2
     s_msg.ranges = list(rng)
     r = rospy.Rate(rate)
     while not rospy.is_shutdown():
