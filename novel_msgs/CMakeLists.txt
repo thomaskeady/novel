@@ -10,7 +10,7 @@ project(novel_msgs)
 find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
-
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -106,7 +106,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES novel_msgs
-#  CATKIN_DEPENDS std_msgs
+ CATKIN_DEPENDS message_generation
 #  DEPENDS system_lib
 )
 

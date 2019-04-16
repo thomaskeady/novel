@@ -1,0 +1,34 @@
+#!/usr/bin/env python
+"""
+This fake node publishes an expected scan of a constant value 
+(i.e the robot is in the center of a circular field)
+
+It also publishes an actual scan with 5 readings in the middle
+that are half value. This should correspond to a detected object
+behind the robot
+"""
+import rospy
+from sensor_msgs.msg import LaserScan
+from geometry_msgs.msg import PoseWithCovarianceStamped
+import numpy as np
+if __name__ == "__main__":
+    rospy.init_node('fake_scan')
+    scan_pub = rospy.Publisher('/scan', LaserScan, queue_size=5)
+    expected_scan_pub = rospy.Publisher('/expected_scan', LaserScan, queue_size=5)
+    pose_pub = rospy.Publisher('/amcl_pose', PoseWithCovarianceStamped, queue_size=5)
+    rate = 10
+    expected_distance = 10
+
+    rng = np.ones((360,))*expected_distance
+    s_msg = LaserScan(range_max=expected_distance)
+    e_msg = LaserScan(range_max=expected_distance)
+    e_msg.ranges = list(rng)
+    rng[180:190] = expected_distance/2
+    s_msg.ranges = list(rng)
+    r = rospy.Rate(rate)
+    while not rospy.is_shutdown():
+        r.sleep()
+        pose_pub.publish(PoseWithCovarianceStamped())
+        scan_pub.publish(s_msg)
+        expected_scan_pub.publish(e_msg)
+        
