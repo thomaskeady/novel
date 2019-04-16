@@ -24,7 +24,6 @@ private:
 	ros::NodeHandle &nh_;
 	
 	// Messages
-	//nav_msgs::OccupancyGrid* grid;
 	sensor_msgs::LaserScan to_publish;
 
 	// Publishers
@@ -38,8 +37,6 @@ private:
 	// Other
 	nav_msgs::MapMetaData map_metadata;
 	float map_resolution; // Since its empty in hte messages *eye roll* (m/cell)
-	//std_msgs::Int8MultiArray grid;
-	//ros::int8 grid;
 	std::vector<signed char, std::allocator<signed char> > grid;
 	
 	// Append "stamped" if want header as well
@@ -78,7 +75,6 @@ public:
 		min_angle(-3.14),
 		max_angle(3.14),
 		points_per_scan(100),
-		//angle_increment((float)std::abs(min_angle - max_angle)/(float)points_per_scan),
 		range(2), // meters
 
 		// Other
@@ -131,11 +127,11 @@ public:
 	{
 		//ROS_INFO("Not implemented yet lol");
 
-		// Assume for now transform from robot to lidar is {0 0 0 0 0 0} (TODO fix)
+		// Assume for now transform from robot to lidar is {0 0 0 0 0 0} (TODO fix) // does this have to do with frame_id??
 		
 		// Perhaps grab lidar specs (# scans, angles, etc) from model? For now hardcode TODO (hardcoding took plcae in constructor)
 		
-		// JUST FUCKING DO IT - have it round up or down the float slope coords such that they are valid indices and then 
+		// The plan - have it round up or down the float slope coords such that they are valid indices and then 
 		// end the scan when it hits its first occupied point (they should all be binary right? 
 		curr_scan_angle = min_angle;
 		
@@ -149,14 +145,9 @@ public:
 		map_scan_angle = curr_scan_angle + yaw; 
 
 		int max_hyp = range/map_resolution; // message member variable is 0?? Read from RVIZ
-		//int max_hyp = range/map_metadata.resolution;
-		/*ROS_INFO("resolution = %.15f", map_metadata.resolution);
-		int test = ceil(map_metadata.resolution);
-		ROS_INFO("resolution = %d", test);*/
 		//ROS_INFO("max_hyp = %d\nmin_angle = %f\nmax_angle = %f\npoints_per_scan = %d\nangle_increment = %f\ncalc = %f", max_hyp, min_angle, max_angle, points_per_scan, angle_increment, std::abs(min_angle - max_angle)/(float)points_per_scan);
 		std::vector<float> ranges(points_per_scan);
 
-		//while (curr_scan_angle < min_angle) 
 		for (int i = 0; i < points_per_scan; ++i)
 		{
 			// Keep testing ahead along angle until hits range or hits occupied grid square
@@ -175,35 +166,27 @@ public:
 				int y_coord = (int)round((pose.pose.position.y-map_metadata.origin.position.y)/map_resolution + std::sin(map_scan_angle)*step); // Check angle units TODO
 				
 				int index = (y_coord)*map_metadata.width + x_coord;
-				//ROS_INFO("Index: %d", index);		
-				//ROS_INFO("grid length: %d\tindex: %d", map_metadata.width*map_metadata.height, index); // What to do when y_coord is 0?? Are you indexing wrong?
 				//ROS_INFO("OG val of (%d, %d): %d\tindex: %d", x_coord, y_coord, grid[index], index);
 				//ROS_INFO("looking at (%d, %d)", x_coord, y_coord);
 	
 				if (grid[index] > 50)  // 100 means occupied
 				{
 					break;
-				} // Otherwise, inf? leave at max for now
+				} // Otherwise, inf? leave at max for now TODO
 
 			}
 
 			ranges[i] = step*map_resolution;
-			
-
 
 			// When done,
 			map_scan_angle += angle_increment;
 		}
 
 		// Now publish
-		
 		to_publish.ranges = ranges;
-
 		scan_pub.publish(to_publish);
 
-
 	}
-
 
 };
 
@@ -213,29 +196,12 @@ int main (int argc, char** argv)
 	
 	ros::NodeHandle nh;
 	
-	//ros::Subscriber grid_sub = nh.subscribe("nav_msgs/OccupancyGrid", 100, ogCb); // Might need to rename these to match topic names
-	//ros::Subscriber scan_sub = nh.subscribe("sensor_msgs/LaserScan");
-	//ros::Subscriber pose_sub = nh.subscribe("geometry_msgs/PoseWithCovarianceStamped", 100, poseCb)	
-	
 	ExpectedScanGenerator myGenerator = ExpectedScanGenerator(nh);
 
 	ROS_INFO("Waiting for one pose message and one map message");
 
 	ros::Rate wait(2);
 	while (!myGenerator.subscribedTopicsActive()) { wait.sleep(); ros::spinOnce(); };
-	/*while (true) 
-	{ 
-		ROS_INFO("before");
-		ROS_INFO("%s", myGenerator.subscribedTopicsActive() ? "true" : "false");
-		ros::spinOnce();
-
-		if (myGenerator.subscribedTopicsActive()) {
-			break;
-		}
-
-		wait.sleep(); 
-		ROS_INFO("after");
-	};*/
 
 	ros::Rate r(10);
 	while (ros::ok()) 
@@ -244,8 +210,6 @@ int main (int argc, char** argv)
 		myGenerator.generateAndPublishScan();
 		r.sleep();
 	}
-
-
 	
 }
 
