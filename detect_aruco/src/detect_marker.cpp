@@ -24,6 +24,7 @@ Alvar::Alvar() {
 }
 
 void Alvar::callback(const ar_track_alvar_msgs::AlvarMarkers::ConstPtr& msg) {
+  ROS_INFO_STREAM(msg->markers.size());
   if (msg->markers.size() > 0) {
     novel_msgs::NovelObjectArray arr;
 

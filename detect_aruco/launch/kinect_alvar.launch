@@ -15,13 +15,9 @@
         <remap from="camera_image"  to="$(arg cam_image_topic)" />
         <remap from="camera_info"   to="$(arg cam_info_topic)" />
     </node>
-
-    <env name="GAZEBO_MODEL_PATH" value="$(find novel_gazebo)/model"/>
-    <include file ="$(find gazebo_ros)/launch/empty_world.launch">
-        <arg name="world_name" value="$(find detect_aruco)/gazebo/worlds/AR.world"/>
-    </include>
     
     <arg name="rvizconfig" default="$(find detect_aruco)/rviz/aruco_test_env.rviz"/>
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" required="True"/>
+    <!-- <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" required="True"/> -->
 
+    <node name="detect_node" pkg="detect_aruco" type="detect_aruco" output="screen"/>
 </launch>
