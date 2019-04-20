@@ -44,6 +44,8 @@ class NovelLidarDetection(object):
         self.detected_object_pub = rospy.Publisher(detected_object_topic, NovelObjectArray, queue_size=5)
         self.last_scan =  np.array([])
         self.last_expected =  np.array([])
+        self.last_pose = Pose()
+        self.last_scan_msg = LaserScan()
         self.window_size = window_size
         self.window_step = window_step
         self.threshold = threshold
@@ -76,7 +78,11 @@ class NovelLidarDetection(object):
         Detect objcets based on last scans
 
         """
+        
         if np.array_equal(self.last_expected,self.last_scan):
+            return
+        if not any(self.last_expected):
+            self.out_scan_pub.publish(self.last_scan_msg)
             return
         if self.last_scan.shape != self.last_expected.shape:
             rospy.logerr('Expected scan is not the same size as received scan')

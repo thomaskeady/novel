@@ -9,7 +9,7 @@ if __name__ == "__main__":
     argv = {}
     for a in args:
         try:
-            val = rospy.get_param(a)
+            val = rospy.get_param('~'+a)
             argv[a] = val
         except KeyError:
             pass
