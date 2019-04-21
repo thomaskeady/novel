@@ -11,7 +11,7 @@
       
     </include>
 </group>
-<group>
+
 <include file="$(find turtlebot_gazebo)/launch/amcl_demo.launch">
     <remap from="raw_scan" to="scan"/>
     <arg name="map_file" value="$(find expected_scan_generator)/map_by_thomas.yaml"/>
@@ -24,8 +24,12 @@
 -->
 
 <node name="rviz" pkg="rviz" type="rviz" args="-d $(find expected_scan_generator)/rviz/view_laserscans.rviz"/>
-
-<node pkg="expected_scan_generator" type="expected_scan_generator" name="expected_scan_node"/>
+<param name="min_angle" value="0"/>
+<param name="max_angle" value="6.28319"/>
+<param name="range" value="3.5"/>
+<node pkg="expected_scan_generator" type="expected_scan_generator" name="expected_scan_node">
+  
+</node>
 <node pkg="novel_lidar_detection" type="novel_lidar_detection" name="novel_lidar_detection">
   <param name="out_scan_topic" value="scan"/>
   <param name="in_scan_topic" value="raw_scan"/>

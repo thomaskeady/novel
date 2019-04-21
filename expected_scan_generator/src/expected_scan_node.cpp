@@ -5,7 +5,7 @@ Written by Thomas Keady for RSP Spring 2019 final project
 Some code borrowed from the ROS tutorials http://wiki.ros.org/ROS/Tutorials/WritingPublisherSubscriber%28c%2B%2B%29
 And the navigation sensor tutorials http://wiki.ros.org/navigation/Tutorials/RobotSetup/Sensors
 
-The purpose of this node is to take the estimated robot pose and the known map of the environment (as an occupancy grid) and publish the expected scan the robot's LIDAR should measure. 
+The purpose of this node is to take the estimated robot pose and the known map of the environment (as an occupancy grid) and publish the expected scan the robot"s LIDAR should measure. 
 
 */
 
@@ -17,7 +17,7 @@ The purpose of this node is to take the estimated robot pose and the known map o
 #include "sensor_msgs/LaserScan.h"
 #include "geometry_msgs/PoseWithCovarianceStamped.h"
 #include <cmath>
-
+#include <limits>
 class ExpectedScanGenerator
 {
 private:
@@ -67,21 +67,19 @@ public:
 
 		// Subscribers
 		grid_sub(nh_.subscribe("map", 100, &ExpectedScanGenerator::ogCb, this)),
-		pose_sub(nh_.subscribe("amcl_pose", 100, &ExpectedScanGenerator::poseCb, this)),
+		pose_sub(nh_.subscribe("amcl_pose", 100, &ExpectedScanGenerator::poseCb, this))
 		//robot_state_pub(nh_.subscribe("
 
-
-		map_resolution(0.05), // hardcoded for now
-		min_angle(-3.14),
-		max_angle(3.14),
-		points_per_scan(100),
-		range(2), // meters
-
-		// Other
-		map_known(false),
-		pose_known(false)
+		
 
 	{
+		nh_.param<float>("map_resolution", map_resolution, 0.05);
+		nh_.param<float>("min_angle", min_angle, -3.14);
+		nh_.param<float>("max_angle", max_angle, 3.14);
+		nh_.param<int>("points_per_scan", points_per_scan, 360);
+		nh_.param<float>("range", range, 2);
+		nh_.param<bool>("map_known", map_known, false);
+		nh_.param<bool>("pose_known", pose_known, false);
 		angle_increment = std::abs(min_angle - max_angle)/(float)points_per_scan;
 
 		to_publish.angle_min = min_angle;
@@ -156,7 +154,7 @@ public:
 
 			int step = 0; // Declare step at this scope so can push it to laserscan msg later
 
-			// If need more distance precision, make steps smaller (shoudln't need this, steps proportional to grid size)
+			// If need more distance precision, make steps smaller (shoudln"t need this, steps proportional to grid size)
 			for (step = 1; step < max_hyp; ++step) 
 			{
 				//ROS_INFO("Per step");
@@ -175,8 +173,16 @@ public:
 				} // Otherwise, inf? leave at max for now TODO
 
 			}
-
-			ranges[i] = step*map_resolution;
+			if (step == max_hyp)
+			{
+				ranges[i] = std::numeric_limits<float>::infinity();
+			}
+			else
+			{
+				ranges[i] = step*map_resolution;
+			}
+			
+			
 
 			// When done,
 			map_scan_angle += angle_increment;

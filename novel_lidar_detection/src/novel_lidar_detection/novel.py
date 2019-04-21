@@ -84,6 +84,7 @@ class NovelLidarDetection(object):
         if not any(self.last_expected):
             self.out_scan_pub.publish(self.last_scan_msg)
             return
+        
         if self.last_scan.shape != self.last_expected.shape:
             rospy.logerr('Expected scan is not the same size as received scan')
         sw, sw_i = self.window_stack(self.last_scan)
@@ -127,6 +128,7 @@ class NovelLidarDetection(object):
         real_expected = self.last_expected*self.range_max
         u_range[detected_objects] = real_expected[detected_objects]
         msg.ranges = list(u_range)
+        msg.intensities = []
         self.out_scan_pub.publish(msg)
 
         
@@ -145,6 +147,8 @@ class NovelLidarDetection(object):
     def ls_callback(self, msg):
         self.range_max = msg.range_max
         self.last_scan = np.array(msg.ranges)/self.range_max
+        self.last_scan[self.last_scan == np.inf] = 0
         self.last_scan_msg = msg
     def els_callback(self, msg):
         self.last_expected = np.array(msg.ranges)/self.range_max
+        self.last_expected[self.last_expected == np.inf] = 0
