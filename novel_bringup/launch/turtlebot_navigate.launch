@@ -1,6 +1,10 @@
+<!-- I don't know if "turtlebot_navigate" is the right name for this file -->
+
 <launch>
 <arg name="gui" default="true" />
 <arg name="world_file" default="$(find turtlebot_gazebo)/worlds/playground.world"/>
+
+<!--
 <group>
 <remap from="scan" to="raw_scan"/>
 
@@ -14,10 +18,12 @@
     
     
 </group>
+-->
+
 <group>
   <include file="$(find turtlebot_gazebo)/launch/amcl_demo.launch">
-      <arg name="map_file" value="$(find expected_scan_generator)/map_by_thomas.yaml"/>
-      <!--<arg name="map_file" value="$(find expected_scan_generator)/../maps/9e_suite.yaml"/>-->
+      <!--<arg name="map_file" value="$(find expected_scan_generator)/map_by_thomas.yaml"/>-->
+      <arg name="map_file" value="$(find expected_scan_generator)/../maps/9e_suite.yaml"/>
     </include>
 
 </group>
@@ -41,13 +47,29 @@
 
   <param name="robot_description" command="$(find xacro)/xacro.py --inorder $(find novel_gazebo)/model/turtlebot_lidar/turtlebot_lidar.urdf.xacro"/>
   <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -model turtlebot_lidar" />
-  <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher"/>
+  <node name="robot_state_publisher_2" pkg="robot_state_publisher" type="state_publisher"/> <!-- there i go again, jankifying everything -->
 
   <!-- Velocity muxer -->
- <node pkg="nodelet" type="nodelet" name="mobile_base_nodelet_manager" args="manager"/>
- <node pkg="nodelet" type="nodelet" name="cmd_vel_mux"
+<!-- <node pkg="nodelet" type="nodelet" name="mobile_base_nodelet_manager" args="manager"/> turtlebot_bringup launch_minimal has these
+ <node pkg="nodelet" type="nodelet" name="cmd_vel_mux" 
        args="load yocs_cmd_vel_mux/CmdVelMuxNodelet mobile_base_nodelet_manager">
    <param name="yaml_cfg_file" value="$(find turtlebot_bringup)/param/mux.yaml" />
    <remap from="cmd_vel_mux/output" to="mobile_base/commands/velocity"/>
- </node>
+ </node> -->
+
+<!-- Spin up the real turtlebot --> 
+<include file="$(find turtlebot_bringup)/launch/minimal.launch"></include>
+
+<!-- is this the best way to start the rplidar node? -->
+<node name="rplidarNode"          pkg="rplidar_ros"  type="rplidarNode" output="screen">
+  <param name="serial_port"         type="string" value="/dev/ttyUSB0"/>
+  <param name="serial_baudrate"     type="int"    value="115200"/><!--A1/A2 -->
+  <!--param name="serial_baudrate"     type="int"    value="256000"--><!--A3 -->
+  <param name="frame_id"            type="string" value="camera_depth_frame"/>
+  <param name="inverted"            type="bool"   value="false"/>
+  <param name="angle_compensate"    type="bool"   value="true"/>
+</node>
+
+
+
 </launch>
