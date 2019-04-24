@@ -5,11 +5,11 @@ import rospy
 if __name__ == "__main__":
     rospy.init_node('novel_lidar')
     args = ['in_scan_topic', 'expected_scan_topic', 'out_scan_topic', 'detected_object_topic',
-     'pose_topic', 'threshold', 'window_size', 'window_step']
+     'pose_topic', 'threshold', 'window_size', 'window_step', 'covariance_threshold']
     argv = {}
     for a in args:
         try:
-            val = rospy.get_param(a)
+            val = rospy.get_param('~'+a)
             argv[a] = val
         except KeyError:
             pass
