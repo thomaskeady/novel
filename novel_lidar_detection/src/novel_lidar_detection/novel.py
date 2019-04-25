@@ -1,7 +1,7 @@
 import rospy
 from novel_msgs.msg import NovelObject, NovelObjectArray
 from sensor_msgs.msg import LaserScan
-from geometry_msgs.msg import PoseWithCovarianceStamped, Pose, Point
+from geometry_msgs.msg import PoseWithCovarianceStamped, Pose, Point, Quaternion
 import numpy as np
 import math
 from copy import deepcopy
@@ -58,7 +58,7 @@ class NovelLidarDetection(object):
         self.threshold = threshold
         self.range_max = 1
         self.covariance_threshold = covariance_threshold
-        self.frame_id = frame_name
+        self.frame_id = frame_id
     def window_stack(self, a):
         '''
         Function from here:
@@ -154,7 +154,7 @@ class NovelLidarDetection(object):
         rad = float(median_index)/len(last_scan) * 2 * math.pi
         x = last_scan[median_index] * math.cos(rad) * self.range_max
         y = last_scan[median_index] * math.sin(rad) * self.range_max
-        return Pose(position=Point(x,y,z))
+        return Pose(position=Point(x,y,z), orientation=Quaternion(w=1))
     def pose_callback(self, msg):
         self.last_pose = msg.pose.pose
      

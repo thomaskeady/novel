@@ -37,7 +37,9 @@
 <node pkg="novel_lidar_detection" type="novel_lidar_detection" name="novel_lidar_detection">
   <param name="out_scan_topic" value="scan"/>
   <param name="in_scan_topic" value="raw_scan"/>
+  <param name="covariance_threshold" value="0.008"/>
 </node>
+
 
   <param name="robot_description" command="$(find xacro)/xacro.py --inorder $(find novel_gazebo)/model/turtlebot_lidar/turtlebot_lidar.urdf.xacro"/>
   <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -model turtlebot_lidar" />
@@ -50,4 +52,5 @@
    <param name="yaml_cfg_file" value="$(find turtlebot_bringup)/param/mux.yaml" />
    <remap from="cmd_vel_mux/output" to="mobile_base/commands/velocity"/>
  </node>
+ <!-- <node name="novel_tf_publisher" pkg="novel_lidar_detection" type="novel_publish_tf"/> -->
 </launch>
