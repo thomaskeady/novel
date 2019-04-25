@@ -1,6 +1,6 @@
 <launch>
   <arg name="gui" default="true" />
-  <arg name="world_file" default="$(find novel_gazebo)/worlds/playground.world"/>
+  <arg name="world_file" default="$(find novel_gazebo)/world/playground.world"/>
 
   <group>
     <remap from="scan" to="raw_scan"/>
@@ -16,7 +16,6 @@
   <group>
     <include file="$(find turtlebot_gazebo)/launch/amcl_demo.launch">
       <arg name="map_file" value="$(find expected_scan_generator)/map_by_thomas.yaml"/>
-      <!--<arg name="map_file" value="$(find expected_scan_generator)/../maps/9e_suite.yaml"/>-->
     </include>
   </group>
 
@@ -29,7 +28,7 @@
   <param name="max_angle" value="6.28319"/>
   <param name="range" value="3.5"/>
   <node pkg="expected_scan_generator" type="expected_scan_generator" name="expected_scan_node"/>
-  
+
   <node pkg="novel_lidar_detection" type="novel_lidar_detection" name="novel_lidar_detection">
     <param name="out_scan_topic" value="scan"/>
     <param name="in_scan_topic" value="raw_scan"/>
