@@ -16,7 +16,7 @@ class NovelLidarDetection(object):
         window_size=3, 
         window_step=2,
         covariance_threshold=0.007,
-        frame_id='base_scan'):
+        frame_name='base_scan'):
         """
         Initializes object 
 
