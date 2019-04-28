@@ -59,6 +59,7 @@ class NovelLidarDetection(object):
         self.range_max = 1
         self.covariance_threshold = covariance_threshold
         self.frame_id = frame_id
+        self.pose_ready = False
     def window_stack(self, a):
         '''
         Function from here:
@@ -100,14 +101,24 @@ class NovelLidarDetection(object):
             return
         if self.last_scan.shape != self.last_expected.shape:
             rospy.logerr('Expected scan (n={}) is not the same size as received scan (n={})'.format(self.last_expected.shape,self.last_scan.shape))
-        sw, sw_i = self.window_stack(self.last_scan)
-        ew, ew_i = self.window_stack(self.last_expected)
-        detected_objects = np.zeros(self.last_scan.shape, dtype=np.bool)
-        for s,e,i in zip(sw, ew, sw_i):
-            # er = np.correlate(s,e)
-            er = ((s-e)**2).mean()
-            if er > self.threshold:
-                detected_objects[i] = True
+        # sw, sw_i = self.window_stack(self.last_scan)
+        # ew, ew_i = self.window_stack(self.last_expected)
+        # detected_objects = np.zeros(self.last_scan.shape, dtype=np.bool)
+        # for s,e,i in zip(sw, ew, sw_i):
+        #     # er = np.correlate(s,e)
+        #     er = ((s-e)**2).mean()
+        #     if er > self.threshold:
+        #         detected_objects[i] = True
+        
+        ls = self.last_scan
+        ls[np.isinf(ls)] = self.last_scan_msg.range_max
+        els = self.last_expected
+        els[np.isinf(els)] = self.last_scan_msg.range_max
+
+        er2 = els - ls
+        kernel = np.ones(self.window_size) * 1.0/self.window_size
+        er2 = np.convolve(er2, kernel, mode='same')
+        detected_objects = er2[er2>self.threshold]
         # Calculate center of mass of objects
         detected_objects_position = []
         in_object = False
@@ -157,19 +168,18 @@ class NovelLidarDetection(object):
         return Pose(position=Point(x,y,z), orientation=Quaternion(w=1))
     def pose_callback(self, msg):
         self.last_pose = msg.pose.pose
-     
-        
-
-        
         self.last_pose_covariance = np.array(msg.pose.covariance)
         self.cov_mag = np.linalg.norm(self.last_pose_covariance)
+        self.pose_ready = True
         # rospy.logwarn_throttle(10, 'Pose msg received: cov: {} mag: {}'.format(self.last_pose_covariance, self.cov_mag ))
         self.last_pose_header = msg.header
     def ls_callback(self, msg):
-        self.range_max = msg.range_max
-        self.last_scan = np.array(msg.ranges)/self.range_max
-        self.last_scan[self.last_scan == np.inf] = 0
-        self.last_scan_msg = msg
+        if self.pose_ready:
+            self.range_max = msg.range_max
+            self.last_scan = np.array(msg.ranges)/self.range_max
+            self.last_scan[self.last_scan == np.inf] = 0
+            self.last_scan_msg = msg
+            self.pose_ready = False
     def els_callback(self, msg):
         self.last_expected = np.array(msg.ranges)/self.range_max
         self.last_expected[self.last_expected == np.inf] = 0

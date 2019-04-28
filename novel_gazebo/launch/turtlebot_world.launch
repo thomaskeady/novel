@@ -51,5 +51,5 @@
    <param name="yaml_cfg_file" value="$(find turtlebot_bringup)/param/mux.yaml" />
    <remap from="cmd_vel_mux/output" to="mobile_base/commands/velocity"/>
  </node>
- <!-- <node name="novel_tf_publisher" pkg="novel_lidar_detection" type="novel_publish_tf"/> -->
+ <node name="novel_tf_publisher" pkg="novel_lidar_detection" type="novel_publish_tf"/>
 </launch>
