@@ -60,6 +60,12 @@ class NovelLidarDetection(object):
         self.covariance_threshold = covariance_threshold
         self.frame_id = frame_id
         self.pose_ready = False
+    def update_configuration(self,config, level):
+        for key,value in config.items():
+            if hasattr(self, key):
+                rospy.loginfo('Setting {} to {}'.format(key, value))
+                setattr(self, key, value)
+        return config
     def window_stack(self, a):
         '''
         Function from here:
