@@ -89,8 +89,7 @@ class NovelLidarDetection(object):
 
         """
         
-        if np.array_equal(self.last_expected,self.last_scan):
-            return
+        
         if not any(self.last_expected):
             self.out_scan_pub.publish(self.last_scan_msg)
             return
@@ -101,6 +100,10 @@ class NovelLidarDetection(object):
             return
         if self.last_scan.shape != self.last_expected.shape:
             rospy.logerr('Expected scan (n={}) is not the same size as received scan (n={})'.format(self.last_expected.shape,self.last_scan.shape))
+        if np.array_equal(self.last_expected,self.last_scan):
+            self.out_scan_pub.publish(self.last_scan_msg)
+
+            return
         # sw, sw_i = self.window_stack(self.last_scan)
         # ew, ew_i = self.window_stack(self.last_expected)
         # detected_objects = np.zeros(self.last_scan.shape, dtype=np.bool)
@@ -114,11 +117,11 @@ class NovelLidarDetection(object):
         ls[np.isinf(ls)] = self.last_scan_msg.range_max
         els = self.last_expected
         els[np.isinf(els)] = self.last_scan_msg.range_max
-
+        els = self.get_best_offset_es(ls, els)
         er2 = els - ls
         kernel = np.ones(self.window_size) * 1.0/self.window_size
         er2 = np.convolve(er2, kernel, mode='same')
-        detected_objects = er2[er2>self.threshold]
+        detected_objects = er2>self.threshold
         # Calculate center of mass of objects
         detected_objects_position = []
         in_object = False
@@ -141,7 +144,7 @@ class NovelLidarDetection(object):
         for i,o in enumerate(detected_objects_position):
             
             m = NovelObject()
-            p = self.calculate_position_from_index(o)
+            p = self.calculate_position_from_index(o, ls)
             m.pose.pose = p
             # Make this covariance better?
             m.pose.covariance = list(np.zeros((6,6)).flatten())
@@ -158,13 +161,23 @@ class NovelLidarDetection(object):
         self.out_scan_pub.publish(msg)
 
         
-
-    def calculate_position_from_index(self, median_index):
+    def get_best_offset_es(self, scan, expected_scan):
+        best_offset = 0
+        best_err = np.inf
+        for i in range(len(scan)):
+            # s = np.roll(scan, i)
+            es = np.roll(expected_scan, i)
+            err = np.sum((scan-es)**2)
+            if err < best_err:
+                best_offset = i
+                best_err = err
+        return np.roll(expected_scan, best_offset)
+    def calculate_position_from_index(self, median_index, last_scan):
         z = self.last_pose.position.z
-        last_scan = self.last_scan
         rad = float(median_index)/len(last_scan) * 2 * math.pi
         x = last_scan[median_index] * math.cos(rad) * self.range_max
         y = last_scan[median_index] * math.sin(rad) * self.range_max
+        print(last_scan[median_index],rad,self.range_max)
         return Pose(position=Point(x,y,z), orientation=Quaternion(w=1))
     def pose_callback(self, msg):
         self.last_pose = msg.pose.pose
@@ -174,12 +187,11 @@ class NovelLidarDetection(object):
         # rospy.logwarn_throttle(10, 'Pose msg received: cov: {} mag: {}'.format(self.last_pose_covariance, self.cov_mag ))
         self.last_pose_header = msg.header
     def ls_callback(self, msg):
+        self.last_scan_msg = msg
         if self.pose_ready:
             self.range_max = msg.range_max
             self.last_scan = np.array(msg.ranges)/self.range_max
-            self.last_scan[self.last_scan == np.inf] = 0
-            self.last_scan_msg = msg
-            self.pose_ready = False
+            # self.pose_ready = False
+
     def els_callback(self, msg):
         self.last_expected = np.array(msg.ranges)/self.range_max
-        self.last_expected[self.last_expected == np.inf] = 0
