@@ -2,19 +2,28 @@
 
 <launch>
 <!-- Begin boilerplate code -->
-<arg name="lidar_port" default="/dev/ttyUSB1">
+<arg name="lidar_port" default="/dev/ttyUSB1"/>
 <arg name="use_controller" default="false" />
+<group>
+<remap from="scan" to="raw_scan"/>
+<include file="$(find novel_bringup)/launch/include/turtlebot_common.launch">
 
-<include file="$(find novel_bringup)/launch/include/turtlebot_common.launch" pass_all_args="true"/>
+
+<arg name="lidar_port" default="$(arg lidar_port)"/>
+<arg name="use_controller" value="$(arg use_controller)" />
+
+
+</include>
+</group>
 <!-- End boilerplate code -->
 
-<arg name="map_file" default="$(find expected_scan_generator)/../maps/outside_b17.yaml"/>
+
 <group>
   <include file="$(find turtlebot_gazebo)/launch/amcl_demo.launch">
       <!--<arg name="map_file" value="$(find expected_scan_generator)/map_by_thomas.yaml"/>-->
       <!--<arg name="map_file" value="$(find expected_scan_generator)/../maps/9e_suite.yaml"/>-->
       <!--<arg name="map_file" value="$(find expected_scan_generator)/../maps/outside_B08E.yaml"/>-->
-      <arg name="map_file" value="$(arg map_file)"/>
+      <arg name="map_file" value="$(find expected_scan_generator)/../maps/hackerman_hallway_raph.yaml"/>
     </include>
 
 </group>
