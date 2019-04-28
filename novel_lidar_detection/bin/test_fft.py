@@ -2,9 +2,12 @@ from numpy import inf
 import numpy as np
 import matplotlib.pyplot as plt
 import math
-wsz = 3
-wsp = 1
+wsz = 5
+wsp = 3
+max_range = 10
 threshold = 1
+# projection = 'polar'
+projection = None
 def window_stack(a):
         '''
         Function from here:
@@ -39,15 +42,20 @@ print('Len of scan {}'.format(len(scan)))
 print('Len of Escan {}'.format(len(expected_scan)))
 
 
-ax = plt.subplot(311, projection='polar')
+ax = plt.subplot(221, projection=projection)
 ax.plot(np.arange(0,2*np.pi, 2*np.pi/360), scan)
 
-ax = plt.subplot(312, projection='polar')
+ax = plt.subplot(222, projection=projection)
 ax.plot(np.arange(0,2*np.pi, 2*np.pi/360), expected_scan)
 
-scan[scan==np.nan] = 0
-expected_scan[expected_scan==np.nan] = 0
-
+# scan[scan==np.nan] = np.inf
+# expected_scan[expected_scan==np.nan] = np.inf
+print(scan)
+print(expected_scan)
+scan[np.isnan(scan)] = max_range
+expected_scan[np.isnan(expected_scan)] = max_range
+print(scan)
+print(expected_scan)
 # fscan = np.fft.fft(scan)
 # fescan = np.fft.fft(expected_scan)
 
@@ -80,7 +88,17 @@ for s,e,i in zip(sw, ew, sw_i):
         detected_objects[i] = True
 er.extend([0,0])
 
-print(er)
-plt.subplot(313, projection='polar')
-plt.plot(np.arange(0,2*np.pi, 2*np.pi/360),er )
+
+plt.subplot(223, projection=projection)
+# plt.plot(np.arange(0,2*np.pi, 2*np.pi/360),er )
+
+er2 = expected_scan - scan
+plt.plot(np.arange(0,2*np.pi, 2*np.pi/360),er2 )
+# er2 = scan - expected_scan
+er2[er2<0] = 0
+kernel = np.ones(wsz) * 1.0/wsz
+er2 = np.convolve(er2, kernel, mode='same')
+plt.subplot(224, projection=projection)
+plt.plot(np.arange(0,2*np.pi, 2*np.pi/360),er2)
 plt.show()
+
