@@ -19,10 +19,6 @@
     </include>
   </group>
 
-  <!--
-  <include file="$(find turtlebot_rviz_launchers)/launch/view_navigation.launch"/>
-  -->
-
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find expected_scan_generator)/rviz/view_laserscans.rviz"/>
   <param name="min_angle" value="0"/>
   <param name="max_angle" value="6.28319"/>
@@ -48,5 +44,4 @@
     <param name="yaml_cfg_file" value="$(find turtlebot_bringup)/param/mux.yaml" />
     <remap from="cmd_vel_mux/output" to="mobile_base/commands/velocity"/>
   </node>
-  <!-- <node name="novel_tf_publisher" pkg="novel_lidar_detection" type="novel_publish_tf"/> -->
 </launch>
