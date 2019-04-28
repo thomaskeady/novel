@@ -1,6 +1,7 @@
 <launch>
   <!-- <include file="$(find action)/launch/view_navigation.launch" /> -->
 
+<<<<<<< HEAD
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find expected_scan_generator)/rviz/view_laserscans.rviz"/>
 
   <param name="min_angle" value="0"/>
