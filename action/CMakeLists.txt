@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(novel_msgs)
+project(action)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -8,9 +8,13 @@ project(novel_msgs)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  roscpp
   std_msgs
-  geometry_msgs
-  message_generation
+  rospy
+  move_base_msgs
+  actionlib
+  novel_msgs
+  nav_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -47,11 +51,11 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  NovelObject.msg
-  NovelObjectArray.msg
-)
+# add_message_files(
+#   FILES
+#   Message1.msg
+#   Message2.msg
+# )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -68,11 +72,10 @@ add_message_files(
 # )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-  geometry_msgs
-)
+# generate_messages(
+#   DEPENDENCIES
+#   std_msgs  # Or other packages containing msgs
+# )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -105,15 +108,17 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES novel_msgs
- CATKIN_DEPENDS message_generation
+#  LIBRARIES action
+#  CATKIN_DEPENDS roscpp std_msgs_rospy
 #  DEPENDS system_lib
-  CATKIN_DEPENDS message_runtime
+  CATKIN_DEPENDS novel_msgs
 )
 
 ###########
 ## Build ##
 ###########
+
+add_definitions(-std=c++11)
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
@@ -124,7 +129,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/novel_msgs.cpp
+#   src/${PROJECT_NAME}/action.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -135,8 +140,10 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/novel_msgs_node.cpp)
+# add_executable(${PROJECT_NAME}_node src/action_node.cpp)
+add_executable(action src/navigation_actions.cpp)
 
+add_dependencies(action ${catkin_EXPORTED_TARGETS})
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -151,6 +158,7 @@ include_directories(
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
+target_link_libraries(action ${catkin_LIBRARIES})
 
 #############
 ## Install ##
@@ -192,7 +200,7 @@ include_directories(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_novel_msgs.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_action.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

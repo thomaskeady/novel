@@ -88,7 +88,7 @@ public:
 		to_publish.time_increment = 0;
 		to_publish.scan_time = 0.01; // Get this from slamtec for the A2M8
 		to_publish.range_max = range;
-		to_publish.range_min = 0;
+		to_publish.range_min = 0.153; // Experimentally determined from rplidar
 
 		to_publish.header.frame_id = "/camera_depth_frame";
 
@@ -180,6 +180,10 @@ public:
 			else
 			{
 				ranges[i] = step*map_resolution;
+				if (ranges[i] < to_publish.range_min) 
+				{
+					ranges[i] = to_publish.range_min;
+				}
 			}
 			
 			

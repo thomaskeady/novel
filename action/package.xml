@@ -1,10 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>detect_aruco</name>
+  <name>action</name>
   <version>0.0.0</version>
-  <description>The detect_aruco package</description>
-
-  <!-- adapted from aruco_detect package -->
+  <description>The action package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
@@ -21,7 +19,7 @@
   <!-- Url tags are optional, but multiple are allowed, one per tag -->
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
-  <!-- <url type="website">http://wiki.ros.org/realsense_aruco_test</url> -->
+  <!-- <url type="website">http://wiki.ros.org/action</url> -->
 
 
   <!-- Author tags are optional, multiple are allowed, one per tag -->
@@ -51,15 +49,28 @@
   <!-- Use doc_depend for packages you need only for building documentation: -->
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
-  <depend>roscpp</depend>
-  <depend>tf2_geometry_msgs</depend>
-  <depend>tf2_ros</depend>
-  <depend>tf2</depend>
-  <depend>visualization_msgs</depend>
-  <depend>sensor_msgs</depend>
-  <depend>ar_track_alvar</depend>
-  <depend>ar_track_alvar_msgs</depend>
-  <depend>novel_msgs</depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>move_base_msgs</build_depend>
+  <build_depend>actionlib</build_depend>
+  <build_depend>novel_msgs</build_depend>
+  <build_depend>nav_msgs</build_depend>
+
+  <build_export_depend>roscpp</build_export_depend>
+  <build_export_depend>std_msgs</build_export_depend>
+  <build_export_depend>rospy</build_export_depend>
+  <build_export_depend>move_base_msgs</build_export_depend>
+  <build_export_depend>actionlib</build_export_depend>
+  <build_export_depend>novel_msgs</build_export_depend>
+  <build_export_depend>nav_msgs</build_export_depend>
+
+  <exec_depend>roscpp</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>move_base_msgs</exec_depend>
+  <exec_depend>novel_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

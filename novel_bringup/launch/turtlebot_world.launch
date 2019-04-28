@@ -1,0 +1,30 @@
+<launch>
+<arg name="gui" default="true" />
+<arg name="world_file" default="$(find turtlebot_gazebo)/worlds/playground.world"/>
+<include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="use_sim_time" value="true"/>
+    <arg name="debug" value="false"/>
+    <arg name="gui" value="$(arg gui)" />
+    <arg name="world_name" value="$(arg world_file)"/>
+  </include>
+
+<include file="$(find turtlebot_gazebo)/launch/amcl_demo.launch">
+    <arg name="map_file" value="$(find expected_scan_generator)/map_by_thomas.yaml"/>
+    
+  </include>
+
+<!--
+<include file="$(find turtlebot_rviz_launchers)/launch/view_navigation.launch">
+    <arg 
+  </include>
+-->
+
+<node name="rviz" pkg="rviz" type="rviz" args="-d $(find expected_scan_generator)/rviz/view_laserscans.rviz"/>
+
+<node pkg="expected_scan_generator" type="expected_scan_generator" name="expected_scan_node"/>
+
+
+  <param name="robot_description" command="$(find xacro)/xacro.py --inorder $(find novel_gazebo)/model/turtlebot_lidar/turtlebot_lidar.urdf.xacro"/>
+  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -model turtlebot_lidar" />
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher"/>
+</launch>
