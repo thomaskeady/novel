@@ -14,9 +14,10 @@
     <param name="covariance_threshold" value="0.008"/>
   </node>
 
-  <include file="$(find action)/launch/amcl_demo.launch">
-    <arg name="map_file" value="/home/tkeady1/catkin_ws/src/530_707_independent_project/maps/outside_B08E.yaml"/>
-  </include>
+  <!--<include file="$(find action)/launch/amcl_demo.launch">
+    <arg name="map_file" value="/home/tkeady1/catkin_ws/src/530_707_independent_project/maps/hodson_210.yaml"/>
+
+  </include>-->
 
   <include file="$(find detect_aruco)/launch/kinect_alvar_real.launch" />
 

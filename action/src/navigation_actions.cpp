@@ -15,12 +15,13 @@ typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseCl
 class Action {
   public:
     Action();
-    void runAndRotate(int x_rot, int y_rot, int x_run, int y_run);
-    void rotateForBetterView(int x_rot, int y_rot);
     void runAway(int x_run, int y_run);
+    void rotateForBetterView(int x_rot, int y_rot);
+    void runAndRotate(int x_rot, int y_rot, int x_run, int y_run);
     void constructRunGrid(int marker_x, int marker_y, int robot_x, int robot_y, std::vector<std::vector<double>> &weights);
     void constructRunRotGrid(int x_rot, int y_rt, int x_run, int y_run, int robot_x, int robot_y, std::vector<std::vector<double>> & weights);
     double calcDistance(double x1, double y1, double x2, double y2);
+    void putObjInMap(double obj_x, double obj_y, double robot_x, double robot_y);
 
   private:
     void det_callback(const novel_msgs::NovelObjectArray::ConstPtr& msg);
@@ -35,6 +36,7 @@ class Action {
     nav_msgs::MapMetaData map_metadata;
     float map_resolution;
     std::vector<signed char, std::allocator<signed char> > grid;
+    std::vector<std::vector<std::string> > classGrid;
     geometry_msgs::PoseWithCovariance pose;
     bool map_known;
     bool execute_plan;
@@ -43,6 +45,7 @@ class Action {
     std::vector<std::string> run;
     std::vector<std::string> rotate;
     ros::Time plan_done;
+    double min_marker_det_dist;
 };
 
 Action::Action() {
@@ -50,14 +53,15 @@ Action::Action() {
   pose_known = false;
   execute_plan = false;
   plan_done = ros::Time::now();
+  min_marker_det_dist = 5.0;
 
   det_sub = nh_.subscribe<novel_msgs::NovelObjectArray>("detected", 1, &Action::det_callback, this);
   map_sub = nh_.subscribe<nav_msgs::OccupancyGrid>("map", 1, &Action::map_callback, this);
   pose_sub = nh_.subscribe<geometry_msgs::PoseWithCovarianceStamped>("amcl_pose", 1, &Action::pose_callback, this);
 
   prev = {}; // ids detected for previous plan
-  run = {"0", "2", "4", "6", "8", "10", "12", "14", "16"}; // ids to run away from
-  rotate = {"1", "3", "5", "7", "9", "11", "13", "15", "17"}; // ids to get a better view of
+  run = {"2", "4", "6", "8", "10", "12", "14", "16"}; // ids to run away from
+  rotate = {"0", "1", "3", "5", "7", "9", "11", "13", "15", "17"}; // ids to get a better view of
 }
 
 /*
@@ -75,7 +79,7 @@ void Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& msg) {
   // time msg was created relative to when last trajectory plan finished
   int diff_sec = msg->header.stamp.sec - plan_done.sec;
   int diff_nsec = msg->header.stamp.nsec - plan_done.nsec;
-
+  // ROS_INFO_STREAM(execute_plan);
   // if we know pose of robot, plan is not currently executing, and msg of detected ids came after plan finished
   if (pose_known && !execute_plan && diff_sec >= 0 && diff_nsec >= 0) {
     int x_run = 0;
@@ -96,14 +100,17 @@ void Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& msg) {
       int x_coord = (int)round((msg->detected_objects[i].pose.pose.position.x + pose.pose.position.x - map_metadata.origin.position.x)/map_resolution);
       int y_coord = (int)round((msg->detected_objects[i].pose.pose.position.y + pose.pose.position.y - map_metadata.origin.position.y)/map_resolution);
 
+      double x_dist = msg->detected_objects[i].pose.pose.position.x;
+      double y_dist = msg->detected_objects[i].pose.pose.position.y;      
+
       std::string label = msg->detected_objects[i].classification;
       // TODO: if LIDAR detection node message (aka msg with empty string as label) detects multiple objs, 
-      //       check if marker is in occupied area of map. Then visit each obj and classify it. 
-      //       After any classification, changes values in occupancy grid so that values in 9x9 area 
-      //       around detected marker become occupied
-      if (label.compare("") == 0) {
+      //       check if point is in occupied area of classGrid. If not, visit each point, classify it, put in grid
+      //       as 9x9 area 
 
-      } else if ( sqrt( pow(x_coord,2) + pow(y_coord,2) ) < 5) { // user-defined threshold
+      if (label.compare("") == 0) {
+        
+      } else if ( sqrt( pow(x_dist,3) + pow(y_dist,2) ) < min_marker_det_dist / map_resolution) { // user-defined threshold
         // depending on label, turn on bool for specific action
         if (std::find(run.begin(), run.end(), label) != run.end()) {
           should_run = true;
@@ -184,6 +191,10 @@ void Action::map_callback(const nav_msgs::OccupancyGrid::ConstPtr& msg) {
   map_known = true;
   map_sub.shutdown();
   ROS_INFO("Shut down map subscriber");
+
+  // TODO: initialize classGrid with all empty string
+  std::vector<std::vector<std::string>> v(map_metadata.height, std::vector<std::string>(map_metadata.width, ""));
+  classGrid = v;
 }
 
 /*
@@ -342,21 +353,15 @@ void Action::rotateForBetterView(int x_rot, int y_rot) {
       if (dist < curr_map_dist) {
         goal.target_pose.pose.position.x = x_rot * map_resolution + map_metadata.origin.position.x - dist*cos(angle);
         goal.target_pose.pose.position.y = y_rot * map_resolution + map_metadata.origin.position.y - dist*sin(angle);
-        goal.target_pose.pose.orientation.z = angle;
-        goal.target_pose.pose.orientation.w = 1;
+        goal.target_pose.pose.orientation.z = sin(angle/2.0);
+        goal.target_pose.pose.orientation.w = cos(angle/2.0);
       } else {
         goal.target_pose.pose.position.x = robot_x * map_resolution + map_metadata.origin.position.x;
         goal.target_pose.pose.position.y = robot_y * map_resolution + map_metadata.origin.position.y;
-        goal.target_pose.pose.orientation.z = angle;
-        goal.target_pose.pose.orientation.w = 1;
+        goal.target_pose.pose.orientation.z = sin(angle/2.0);
+        goal.target_pose.pose.orientation.w = cos(angle/2.0);
         execute_plan = false; // even if amcl cannot simply rotate robot in place (for some reason), plan is done
       }
-
-      ROS_INFO_STREAM(goal.target_pose.pose.position.x);
-      ROS_INFO_STREAM(goal.target_pose.pose.position.y);
-      ROS_INFO_STREAM(marker_x);
-      ROS_INFO_STREAM(marker_y);
-      ROS_INFO_STREAM(angle * 180 / 3.1415);
 
       ROS_INFO("Sending goal");
       ac.sendGoal(goal);
@@ -449,8 +454,8 @@ void Action::runAndRotate(int x_rot, int y_rot, int x_run, int y_run) {
       // angle to orient robot such that it is looking at ID to get better view of
       double angle = atan2(marker_y - goal.target_pose.pose.position.y, marker_x - goal.target_pose.pose.position.x);
 
-      goal.target_pose.pose.orientation.z = angle;
-      goal.target_pose.pose.orientation.w = 1;
+      goal.target_pose.pose.orientation.z = sin(angle/2.0);
+      goal.target_pose.pose.orientation.w = cos(angle/2.0);
 
       ROS_INFO_STREAM(goal.target_pose.pose.position.x);
       ROS_INFO_STREAM(goal.target_pose.pose.position.y);
@@ -681,6 +686,13 @@ double Action::calcDistance(double x1, double y1, double x2, double y2) {
   double dist = sqrt(pow(x,2) + pow(y,2));
 
   return dist;
+}
+
+/*
+
+*/
+void Action::putObjInMap(double obj_x, double obj_y, double robot_x, double robot_y) {
+
 }
 
 int main(int argc, char** argv){
