@@ -18,7 +18,8 @@
     <arg name="map_file" value="/home/tkeady1/catkin_ws/src/530_707_independent_project/maps/outside_B08E.yaml"/>
   </include>
 
-  <include file="$(find detect_aruco)/launch/kinect_alvar_real.launch" />
+  <include file="$(find detect_aruco)/launch/kinect_alvar_real.launch">
+  </include>
 
   <node name="action_node" pkg="action" type="action" output="screen"/>
 

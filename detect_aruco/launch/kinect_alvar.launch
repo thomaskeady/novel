@@ -17,7 +17,6 @@
     </node>
     
     <arg name="rvizconfig" default="$(find detect_aruco)/rviz/aruco_test_env.rviz"/>
-    <!-- <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" required="True"/> -->
 
     <include file="$(find novel_gazebo)/launch/turtlebot_world.launch"/>
 

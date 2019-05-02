@@ -17,5 +17,6 @@
   </include>
 
   <!-- Move base -->
- <include file="$(find action)/launch/move_base.launch.xml"/>
+  <!-- Custom move_base launch xml file to adjust transform tolerance param -->
+  <include file="$(find action)/launch/move_base.launch.xml"/>
 </launch>
