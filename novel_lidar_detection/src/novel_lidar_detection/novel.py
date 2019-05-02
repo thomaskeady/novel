@@ -60,12 +60,14 @@ class NovelLidarDetection(object):
         self.covariance_threshold = covariance_threshold
         self.frame_id = frame_id
         self.pose_ready = False
+
     def update_configuration(self,config, level):
         for key,value in config.items():
             if hasattr(self, key):
                 rospy.loginfo('Setting {} to {}'.format(key, value))
                 setattr(self, key, value)
         return config
+
     def window_stack(self, a):
         '''
         Function from here:
@@ -104,20 +106,14 @@ class NovelLidarDetection(object):
             rospy.logwarn_throttle(5, "Covariance too high ({}) to filter reliably -- using raw scan".format(self.cov_mag))
             self.out_scan_pub.publish(self.last_scan_msg)
             return
+
         if self.last_scan.shape != self.last_expected.shape:
             rospy.logerr('Expected scan (n={}) is not the same size as received scan (n={})'.format(self.last_expected.shape,self.last_scan.shape))
+
         if np.array_equal(self.last_expected,self.last_scan):
             self.out_scan_pub.publish(self.last_scan_msg)
-
             return
-        # sw, sw_i = self.window_stack(self.last_scan)
-        # ew, ew_i = self.window_stack(self.last_expected)
-        # detected_objects = np.zeros(self.last_scan.shape, dtype=np.bool)
-        # for s,e,i in zip(sw, ew, sw_i):
-        #     # er = np.correlate(s,e)
-        #     er = ((s-e)**2).mean()
-        #     if er > self.threshold:
-        #         detected_objects[i] = True
+
         
         ls = self.last_scan
         ls[np.isinf(ls)] = self.last_scan_msg.range_max
@@ -128,6 +124,7 @@ class NovelLidarDetection(object):
         kernel = np.ones(self.window_size) * 1.0/self.window_size
         er2 = np.convolve(er2, kernel, mode='same')
         detected_objects = er2>self.threshold
+
         # Calculate center of mass of objects
         detected_objects_position = []
         in_object = False
@@ -157,13 +154,16 @@ class NovelLidarDetection(object):
             m.id = i
             msg.detected_objects.append(m)
         self.detected_object_pub.publish(msg)
+
         # Publish filtered laser scan
         msg = deepcopy(self.last_scan_msg)
         u_range = np.array(msg.ranges)
         real_expected = self.last_expected*self.range_max
         u_range[detected_objects] = real_expected[detected_objects]
+        intensities = np.zeros(len(u_range))
+        intensities[detected_objects] = 1.0
         msg.ranges = list(u_range)
-        msg.intensities = []
+        msg.intensities = intensities
         self.out_scan_pub.publish(msg)
 
         
@@ -171,13 +171,13 @@ class NovelLidarDetection(object):
         best_offset = 0
         best_err = np.inf
         for i in range(len(scan)):
-            # s = np.roll(scan, i)
             es = np.roll(expected_scan, i)
             err = np.sum((scan-es)**2)
             if err < best_err:
                 best_offset = i
                 best_err = err
         return np.roll(expected_scan, best_offset)
+
     def calculate_position_from_index(self, median_index, last_scan):
         z = self.last_pose.position.z
         rad = float(median_index)/len(last_scan) * 2 * math.pi
@@ -185,6 +185,7 @@ class NovelLidarDetection(object):
         y = last_scan[median_index] * math.sin(rad) * self.range_max
         print(last_scan[median_index],rad,self.range_max)
         return Pose(position=Point(x,y,z), orientation=Quaternion(w=1))
+
     def pose_callback(self, msg):
         self.last_pose = msg.pose.pose
         self.last_pose_covariance = np.array(msg.pose.covariance)
@@ -201,3 +202,4 @@ class NovelLidarDetection(object):
 
     def els_callback(self, msg):
         self.last_expected = np.array(msg.ranges)/self.range_max
+        self.detect()

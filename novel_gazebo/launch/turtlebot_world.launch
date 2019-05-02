@@ -1,7 +1,7 @@
 <launch>
   <arg name="gui" default="true" />
   <arg name="world_file" default="$(find novel_gazebo)/world/playground.world"/>
-
+ <arg name="map_file" value="$(find expected_scan_generator)/map_by_thomas.yaml"/>  
   <group>
     <remap from="scan" to="raw_scan"/>
     <env name="GAZEBO_MODEL_PATH" value="$(find novel_gazebo)/model"/>
@@ -14,9 +14,10 @@
   </group>
 
   <group>
-    <include file="$(find turtlebot_gazebo)/launch/amcl_demo.launch">
-      <arg name="map_file" value="$(find expected_scan_generator)/map_by_thomas.yaml"/>
-    </include>
+    
+    <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
+    <include file="$(find novel_bringup)/launch/include/novel_amcl.launch"/>
+    <include file="$(find turtlebot_navigation)/launch/includes/move_base.launch.xml"/>
   </group>
 
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find expected_scan_generator)/rviz/view_laserscans.rviz"/>
