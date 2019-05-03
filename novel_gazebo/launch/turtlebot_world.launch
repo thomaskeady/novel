@@ -1,4 +1,22 @@
 <launch>
+
+<!-- Begin boilerplate code -->
+<!--<arg name="lidar_port" default="/dev/ttyUSB1"/>
+<arg name="use_controller" default="false" />-->
+<group>
+<remap from="scan" to="raw_scan"/>
+<include file="$(find novel_bringup)/launch/include/turtlebot_common.launch">
+
+
+<arg name="lidar_port" default="$(arg lidar_port)"/>
+<arg name="use_controller" value="$(arg use_controller)" />
+
+
+</include>
+</group>
+<!-- End boilerplate code -->
+
+
   <arg name="gui" default="true" />
   <arg name="world_file" default="$(find novel_gazebo)/world/playground.world"/>
  <arg name="map_file" value="$(find expected_scan_generator)/map_by_thomas.yaml"/>  

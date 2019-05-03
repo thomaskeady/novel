@@ -18,6 +18,9 @@
 <!-- End boilerplate code -->
 
 
+<!--<include file="$(find turtlebot_navigation)/launch/includes/move_base.launch.xml"/>-->
+
+
 <group>
 <arg name="map_file" value="$(find expected_scan_generator)/../maps/hackerman_hallway_raph.yaml"/>
   <!-- <include file="$(find turtlebot_gazebo)/launch/amcl_demo.launch"> -->
