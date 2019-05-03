@@ -9,6 +9,8 @@
 #include <math.h>
 #include <cstdlib>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <std_msgs/Int8.h>
+#include <tf/transform_listener.h>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -33,17 +35,27 @@ class Action {
     ros::Subscriber map_sub;
     ros::Subscriber pose_sub;
 
+    ros::Publisher map_pub;
+    ros::Publisher state_pub;
+
+    tf::TransformListener listener;
+
     nav_msgs::MapMetaData map_metadata;
     float map_resolution;
     std::vector<signed char, std::allocator<signed char> > grid;
+    
     geometry_msgs::PoseWithCovariance pose;
+    
     bool map_known;
     bool execute_plan;
     bool pose_known;
+    
     std::vector<std::string> prev;
     std::vector<std::string> run;
     std::vector<std::string> rotate;
+    
     ros::Time plan_done;
+    
     double min_marker_det_dist;
 };
 
@@ -52,15 +64,18 @@ Action::Action() {
   pose_known = false;
   execute_plan = false;
   plan_done = ros::Time::now();
-  min_marker_det_dist = 5.0;
+  min_marker_det_dist = 2.5;
 
   det_sub = nh_.subscribe<novel_msgs::NovelObjectArray>("detected", 1, &Action::det_callback, this);
   map_sub = nh_.subscribe<nav_msgs::OccupancyGrid>("map", 1, &Action::map_callback, this);
   pose_sub = nh_.subscribe<geometry_msgs::PoseWithCovarianceStamped>("amcl_pose", 1, &Action::pose_callback, this);
 
+  map_pub = nh_.advertise<nav_msgs::OccupancyGrid>("map", 1);
+  state_pub = nh_.advertise<std_msgs::Int8>("state", 1);
+
   prev = {}; // ids detected for previous plan
-  run = {"2", "4", "6", "8", "10", "12", "14", "16"}; // ids to run away from
-  rotate = {"0", "1", "3", "5", "7", "9", "11", "13", "15", "17"}; // ids to get a better view of
+  run = {"0", "1", "2", "4", "6", "8", "10", "12", "14", "16"}; // ids to run away from
+  rotate = {"3", "5", "7", "9", "11", "13", "15", "17"}; // ids to get a better view of
 }
 
 /*
@@ -80,7 +95,8 @@ void Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& msg) {
   int diff_nsec = msg->header.stamp.nsec - plan_done.nsec;
   // ROS_INFO_STREAM(execute_plan);
   // if we know pose of robot, plan is not currently executing, and msg of detected ids came after plan finished
-  if (pose_known && !execute_plan && diff_sec >= 0 && diff_nsec >= 0) {
+
+  if (pose_known) { // && !execute_plan && diff_sec >= 0 && diff_nsec >= 0) {
     int x_run = 0;
     int y_run = 0;
     int x_rot = 0;
@@ -95,13 +111,21 @@ void Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& msg) {
     bool unknown = false;
     for (int i = 0; i < msg->detected_objects.size(); i++) {
       // convert marker position world coordinate to map grid coordinate
-      int x_coord = (int)round((msg->detected_objects[i].pose.pose.position.x + pose.pose.position.x - map_metadata.origin.position.x)/map_resolution);
-      int y_coord = (int)round((msg->detected_objects[i].pose.pose.position.y + pose.pose.position.y - map_metadata.origin.position.y)/map_resolution);
+      std::string label = msg->detected_objects[i].classification;
+
+      tf::StampedTransform transform;
+      try {
+        listener.lookupTransform("/map", "/ar_marker_"+label, ros::Time(0), transform);
+      } catch (tf::TransformException ex) {
+        ROS_ERROR("%s", ex.what());
+        ros::Duration(1.0).sleep();
+      }
+
+      int x_coord = (int)round((transform.getOrigin().x() - map_metadata.origin.position.x)/map_resolution);
+      int y_coord = (int)round((transform.getOrigin().y() - map_metadata.origin.position.y)/map_resolution);
 
       double x_dist = msg->detected_objects[i].pose.pose.position.x;
-      double y_dist = msg->detected_objects[i].pose.pose.position.y;      
-
-      std::string label = msg->detected_objects[i].classification;
+      double y_dist = msg->detected_objects[i].pose.pose.position.y;  
 
       if ( sqrt( pow(x_dist,2) + pow(y_dist,2) ) < min_marker_det_dist) { // user-defined threshold
         // depending on label, turn on bool for specific action
@@ -135,6 +159,10 @@ void Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& msg) {
     // do action if new ids detected
     if (!nothing_new && detected_ids.size() > 0) {
       prev = detected_ids;
+      
+      std_msgs::Int8 turn_off;
+      turn_off.data = 0;
+      state_pub.publish(turn_off);
 
       // average position of detected markers
       // kinect field of view is not very wide so detected markers are probably not very far apart
@@ -155,6 +183,16 @@ void Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& msg) {
         ROS_INFO("Run");
         x_run = (int)round( (double)x_run / run_count );
         y_run = (int)round( (double)y_run / run_count );
+        nav_msgs::OccupancyGrid msg1;
+        grid[ y_run*map_metadata.width + x_run ] = 51;
+        grid[ y_run*map_metadata.width + x_run - 1 ] = 49;
+        grid[ y_run*map_metadata.width + x_run + 1 ] = 49;
+        grid[ (y_run-1)*map_metadata.width + x_run ] = 49;
+        grid[ (y_run+1)*map_metadata.width + x_run ] = 49;
+        msg1.data = grid;
+        msg1.info = map_metadata;
+        map_pub.publish(msg1);
+
         runAway(x_run, y_run);
       } else {
         ROS_INFO("Rotate");
@@ -162,6 +200,10 @@ void Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& msg) {
         y_rot = (int)round( (double)y_rot / rot_count );
         rotateForBetterView(x_rot, y_rot);
       }
+
+      std_msgs::Int8 turn_on;
+      turn_on.data = 1;
+      state_pub.publish(turn_on);
     }
   }
 }
@@ -182,12 +224,6 @@ void Action::map_callback(const nav_msgs::OccupancyGrid::ConstPtr& msg) {
   grid = msg->data;
   map_resolution = msg->info.resolution;
   map_known = true;
-  //map_sub.shutdown();
-  //ROS_INFO("Shut down map subscriber");
-
-  // TODO: initialize classGrid with all empty string
-  //std::vector<std::vector<std::string>> v(map_metadata.height, std::vector<std::string>(map_metadata.width, ""));
-  //classGrid = v;
 }
 
 /*
@@ -232,9 +268,17 @@ void Action::runAway(int x_run, int y_run) {
     goal.target_pose.header.frame_id = "map"; // goal is relative to this frame
     goal.target_pose.header.stamp = ros::Time::now();
 
-    // pull coordinates from queue
-    double x = pose.pose.position.x; // robot world coordinate
-    double y = pose.pose.position.y;
+    // get robot coordinates with respect to map frame
+    tf::StampedTransform transform;
+    try {
+      listener.lookupTransform("/map", "/base_link", ros::Time(0), transform);
+    } catch (tf::TransformException ex) {
+      ROS_ERROR("%s", ex.what());
+      ros::Duration(1.0).sleep();
+    }
+
+    double x = transform.getOrigin().x(); // robot coordinate in map frame
+    double y = transform.getOrigin().y();
     int robot_x = (int)round( (x-map_metadata.origin.position.x)/map_resolution); // robot map grid coordinate
     int robot_y = (int)round( (y-map_metadata.origin.position.y)/map_resolution);
 
@@ -249,6 +293,9 @@ void Action::runAway(int x_run, int y_run) {
       }
     }    
 
+    ROS_INFO_STREAM(x);
+    ROS_INFO_STREAM(y);
+    
     while (execute_plan) {
       // generate random number to pick grid index (goal position), convert to world coordinates
       double random = (double)rand() / RAND_MAX;
@@ -257,7 +304,7 @@ void Action::runAway(int x_run, int y_run) {
       int index = 0;
       while (random > 0) {
         random = random - weights[index / map_metadata.width][index % map_metadata.width];
-        index = index + 1;
+  	index = index + 1;
       }
       index = index - 1;
 
@@ -279,6 +326,8 @@ void Action::runAway(int x_run, int y_run) {
       goal.target_pose.pose.orientation.z = sin(angle/2);
       goal.target_pose.pose.orientation.w = cos(angle/2);
 
+      ROS_INFO_STREAM(marker_x);
+      ROS_INFO_STREAM(marker_y);
       ROS_INFO_STREAM(goal.target_pose.pose.position.x);
       ROS_INFO_STREAM(goal.target_pose.pose.position.y);
 
@@ -288,12 +337,12 @@ void Action::runAway(int x_run, int y_run) {
       ac.waitForResult();
 
       if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED) {
-        ROS_INFO("Hooray, the base moved");
-        execute_plan = false;
-        prev.clear(); // clear previously detected ids so that robot can run away again if it still sees ids to run away from
+	ROS_INFO("Hooray, the base moved");
+	execute_plan = false;
+	prev.clear(); // clear previously detected ids so that robot can run away again if it still sees ids to run away from
         plan_done = ros::Time::now(); // plan last finished at this time
       } else
-        ROS_INFO("The base failed to move for some reason. We will sample new goal point.");
+	ROS_INFO("The base failed to move for some reason. We will sample new goal point.");
     }
   }
 }
@@ -483,39 +532,40 @@ weights: empty vector of vector of doubles
 
 Output
 ------
-*/
+i*/
 void Action::constructRunGrid(int marker_x, int marker_y, int robot_x, int robot_y, std::vector<std::vector<double>>& weights) {
   // construct grid of weights based on distance from marker location
   // see which indices of grid create obstruction between robot and marker and increase weight for those
   // of those indices, add weight based on distance from where robot currently is
+  bool nowhereToHide = true;
+  double longestDist = calcDistance(0, 0, map_metadata.width, map_metadata.height); // length of map diagonal
 
-  double longestDist = sqrt( pow(map_metadata.width,2) + pow(map_metadata.height,2) ); // length of map diagonal
-
-  double max = 0; // distance furthest from marker position on map
-  for (int i = 0; i < map_metadata.height; i++) {
-    for (int j = 0; j < map_metadata.width; j++) {
-      if ( (grid[i*map_metadata.width + j] < 50) && (grid[i*map_metadata.width + j] >= 0) ) {
-        double temp = calcDistance(j, i, marker_x, marker_y);
-        if (temp > max) {
-          max = temp;
-        }
-        weights[i][j] = weights[i][j] + temp; // add weight based on distance from marker 
-      }
-    }
-  }
-  ROS_INFO_STREAM(max);
   for (int i = 0; i < map_metadata.height; i++) {
     for (int j = 0; j < map_metadata.width; j++) {
       // check if this grid index is not where marker is and make sure it is accessible
-      if ((j != marker_x) && (i != marker_y) && (grid[i*map_metadata.width + j] < 50) && grid[i*map_metadata.width + j] >= 0 && j != robot_x && i != robot_y) {
-        int dist_x = abs(marker_x - j); // distance from marker position
-        int dist_y = abs(marker_y - i);
-        int sign_x = (marker_x - j) / abs(marker_x - j); // direction of marker relative to i,j grid index along x,y axes
-        int sign_y = (marker_y - i) / abs(marker_y - i);
-        double slope = dist_y / dist_x;
-        
-        int y = i;
-        int x = j;
+      if ((grid[i*map_metadata.width + j] == 0) && (grid[i*map_metadata.width + j] >= 0) && robot_x != j && robot_y != i) {
+        double dist_x = abs(marker_x - j); // distance from marker position
+        double dist_y = abs(marker_y - i);
+
+        int sign_x;
+        double slope;
+        if (dist_x == 0) {
+          sign_x = 0;
+          slope = 0;
+        } else {
+          sign_x = (marker_x - j) / dist_x;
+          slope = dist_y / dist_x; // * sign_x * sign_y;
+        }
+
+        int sign_y;
+        if (dist_y == 0) {
+          sign_y = 0;
+        } else {
+          sign_y = (marker_y - i) / dist_y;
+        }
+
+        double y = i;
+        double x = j;
         // Imagine a line from grid[i][j] to marker position
         // Check if each point along line is occupied / inaccessible. 
         // If it is occupied, then there must be an obstacle there
@@ -526,9 +576,10 @@ void Action::constructRunGrid(int marker_x, int marker_y, int robot_x, int robot
           y = y + slope * sign_y;
           
           while (x != marker_x) {
-            if (grid[ round(y)*map_metadata.width + x ] > 50) {
+            if ((int)grid[ round(y)*map_metadata.width + x ] == 100) {
               double distFromRobot = calcDistance( j, i, robot_x, robot_y);
-              weights[i][j] = weights[i][j] + max*5 + longestDist / distFromRobot * 3; // experimental formula
+              weights[i][j] = longestDist / distFromRobot; // experimental formula
+              nowhereToHide = false;
               break;
             }
             
@@ -546,9 +597,10 @@ void Action::constructRunGrid(int marker_x, int marker_y, int robot_x, int robot
           x = x + inv_slope * sign_x;
           
           while (y != marker_y) {
-            if (grid[ y*map_metadata.width + round(x) ] > 50) {
+            if ((int)grid[ y*map_metadata.width + round(x) ] == 100) {
               double distFromRobot = calcDistance( j, i, robot_x, robot_y);
-              weights[i][j] = weights[i][j] + max*5 + longestDist / distFromRobot * 3; // experimental formula
+              weights[i][j] = longestDist / distFromRobot; // experimental formula
+              nowhereToHide = false;
               break;
             }            
 
@@ -560,17 +612,17 @@ void Action::constructRunGrid(int marker_x, int marker_y, int robot_x, int robot
     }
   }
 
-  // just for purpose of debugging
-  /*
-  for (int i = 0; i < map_metadata.height; i++) {
-    for (int j = 0; j < map_metadata.width; j++) {
-      if (max < weights[i][j]) {
-          max = weights[i][j];
+  if (nowhereToHide) {
+    for (int i = 0; i < map_metadata.height; i++) {
+      for (int j = 0; j < map_metadata.width; j++) {
+        if ( (grid[i*map_metadata.width + j] < 50) && (grid[i*map_metadata.width + j] >= 0) ) {
+          double temp = calcDistance(j, i, marker_x, marker_y);
+          weights[i][j] = temp; // add weight based on distance from marker 
+        }
       }
     }
   }
-  ROS_INFO_STREAM(max);
-  */
+
 }
 
 /*

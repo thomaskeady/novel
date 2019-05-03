@@ -33,7 +33,7 @@
 
   <param name="robot_description" command="$(find xacro)/xacro.py --inorder $(find novel_gazebo)/model/turtlebot_lidar/turtlebot_lidar.urdf.xacro"/>
 
-  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -x 0.0 -y 0.0 -z 0.0 -model turtlebot_lidar"/>
+  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -x -0.89 -y -0.92 -z 0.0 -model turtlebot_lidar"/>
 
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher"/>
 
