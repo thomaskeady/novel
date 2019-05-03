@@ -1,6 +1,6 @@
 <launch>
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find expected_scan_generator)/rviz/view_laserscans.rviz"/>
-
+  
   <param name="min_angle" value="0"/>
   <param name="max_angle" value="6.28319"/>
   <param name="range" value="3.5"/>
