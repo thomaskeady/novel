@@ -16,7 +16,8 @@ class NovelLidarDetection(object):
         window_size=3, 
         window_step=2,
         covariance_threshold=0.007,
-        frame_id='base_scan'):
+        frame_id='base_scan',
+        size_threshold=0.1):
         """
         Initializes object 
 
@@ -43,6 +44,8 @@ class NovelLidarDetection(object):
             and no objects to be detected.
         frame_id: str
             Name of the tf frame of the scanner (for publishing distance)
+        size_threshold: float
+            Objects smaller than this size will not be published
         """
         rospy.Subscriber(in_scan_topic, LaserScan, self.ls_callback)
         rospy.Subscriber(expected_scan_topic, LaserScan, self.els_callback)
@@ -56,6 +59,7 @@ class NovelLidarDetection(object):
         self.window_size = window_size
         self.window_step = window_step
         self.threshold = threshold
+        self.size_threshold = size_threshold
         self.range_max = 1
         self.covariance_threshold = covariance_threshold
         self.frame_id = frame_id
@@ -127,6 +131,7 @@ class NovelLidarDetection(object):
 
         # Calculate center of mass of objects
         detected_objects_position = []
+        detected_objects_size = []
         in_object = False
         pos_begin, pos_end, i = 0, 0, 0
         while i < len(detected_objects):
@@ -137,22 +142,26 @@ class NovelLidarDetection(object):
             else:
                 if in_object:
                     pos_end = i
+                    object_size = pos_end-pos_begin
                     com = math.floor((pos_begin+pos_end)/2)
                     detected_objects_position.append(int(com))
+                    detected_objects_size.append(object_size)
                     in_object = False
             i += 1
         msg = NovelObjectArray()
         msg.header.frame_id = self.frame_id
         msg.header.stamp = rospy.Time.now()
-        for i,o in enumerate(detected_objects_position):
+        for i,(o,si) in enumerate(zip(detected_objects_position, detected_objects_size)):
             
             m = NovelObject()
-            p = self.calculate_position_from_index(o, ls)
-            m.pose.pose = p
-            # Make this covariance better?
-            m.pose.covariance = list(np.zeros((6,6)).flatten())
-            m.id = i
-            msg.detected_objects.append(m)
+            p,s = self.calculate_position_from_index(si, o, ls)
+            if s >= self.size_threshold:
+                m.pose.pose = p
+                m.size = s
+                # Make this covariance better?
+                m.pose.covariance = list(np.zeros((6,6)).flatten())
+                m.id = i
+                msg.detected_objects.append(m)
         self.detected_object_pub.publish(msg)
 
         # Publish filtered laser scan
@@ -178,13 +187,14 @@ class NovelLidarDetection(object):
                 best_err = err
         return np.roll(expected_scan, best_offset)
 
-    def calculate_position_from_index(self, median_index, last_scan):
+    def calculate_position_from_index(self, angluar_size, median_index, last_scan):
+        angle = math.radians(angluar_size)
+        s = 2*last_scan[median_index]*math.tan(angle/2.0)
         z = self.last_pose.position.z
         rad = float(median_index)/len(last_scan) * 2 * math.pi
         x = last_scan[median_index] * math.cos(rad) * self.range_max
         y = last_scan[median_index] * math.sin(rad) * self.range_max
-        print(last_scan[median_index],rad,self.range_max)
-        return Pose(position=Point(x,y,z), orientation=Quaternion(w=1))
+        return ( Pose(position=Point(x,y,z), orientation=Quaternion(w=1)), s)
 
     def pose_callback(self, msg):
         self.last_pose = msg.pose.pose
