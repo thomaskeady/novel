@@ -15,7 +15,7 @@
   </node>
 
   <include file="$(find action)/launch/amcl_demo.launch">
-    <arg name="map_file" value="/home/tkeady1/catkin_ws/src/530_707_independent_project/maps/outside_B08E.yaml"/>
+    <arg name="map_file" value="/home/tkeady1/catkin_ws/src/530_707_independent_project/maps/hackerman_hallway_raph.yaml"/>
   </include>
 
   <include file="$(find detect_aruco)/launch/kinect_alvar_real.launch">
@@ -24,7 +24,7 @@
   <node name="action_node" pkg="action" type="action" output="screen"/>
 
   <node name="rplidarNode"          pkg="rplidar_ros"  type="rplidarNode" output="screen">
-    <param name="serial_port"         type="string" value="/dev/ttyUSB1"/>
+    <param name="serial_port"         type="string" value="/dev/ttyUSB0"/>
     <param name="serial_baudrate"     type="int"    value="115200"/><!--A1/A2 -->
     <!--param name="serial_baudrate"     type="int"    value="256000"--><!--A3 -->
     <param name="frame_id"            type="string" value="camera_depth_frame"/>

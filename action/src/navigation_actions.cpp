@@ -74,8 +74,8 @@ Action::Action() {
   state_pub = nh_.advertise<std_msgs::Int8>("state", 1);
 
   prev = {}; // ids detected for previous plan
-  run = {"0", "1", "2", "4", "6", "8", "10", "12", "14", "16"}; // ids to run away from
-  rotate = {"3", "5", "7", "9", "11", "13", "15", "17"}; // ids to get a better view of
+  run = {"2", "4", "6", "8", "10", "12", "14", "16"}; // ids to run away from
+  rotate = {"0", "1", "3", "5", "7", "9", "11", "13", "15", "17"}; // ids to get a better view of
 }
 
 /*
