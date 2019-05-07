@@ -1,0 +1,47 @@
+#!/usr/bin/env python
+import tf
+import rospy
+import rosparam
+from novel_msgs.msg import NovelObject, NovelObjectArray
+from visualization_msgs.msg import MarkerArray, Marker
+from geometry_msgs.msg import Vector3
+from std_msgs.msg import ColorRGBA
+def handle_objs(msg):
+    # tf_pub = tf.TransformBroadcaster()
+    omsg = MarkerArray()
+    
+    for o in msg.detected_objects:
+        
+        p = o.pose.pose.position
+        a = o.pose.pose.orientation
+        frame_name = o.classification if o.classification else  'detected_object_' + str(o.id) 
+        m = Marker(pose=o.pose.pose, type=Marker.CUBE, scale=Vector3(0.1, 0.1, 0.1), color=ColorRGBA(1,0,0,1))
+        #m.header.frame_id = msg.header.frame_id
+        m.header.frame_id = "base_link"
+        m.ns = frame_name
+        omsg.markers.append(m)
+        # print('Sending transform {} {} {} {} {}'.format((p.x, p.y, p.z),
+        #     (a.x, a.y, a.z, a.w),
+        #     rospy.Time.now(),
+        
+        #     msg.header.frame_id,
+        #     frame_name))
+        # tf_pub.sendTransform(
+        #     (p.x, p.y, p.z),
+        #     (a.x, a.y, a.z, a.w),
+        #     rospy.Time.now(),
+        #     msg.header.frame_id,
+        #     frame_name
+        # )
+    pub.publish(omsg)
+if __name__ == "__main__":
+    rospy.init_node('novel_tf_publisher')
+    obj_topic = rospy.get_param('detected_object_topic', 'lidar_objects')
+    viz_topic = rospy.get_param('visualization_topic', 'marker_array')
+    pub = rospy.Publisher(viz_topic, MarkerArray)
+    rospy.Subscriber(obj_topic, NovelObjectArray, handle_objs)
+
+    rate = rospy.get_param('~rate', 1000)
+    r = rospy.Rate(rate)
+    while not rospy.is_shutdown():
+        r.sleep()

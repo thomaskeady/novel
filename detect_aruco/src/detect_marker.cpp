@@ -23,10 +23,20 @@ Alvar::Alvar() {
 
 }
 
+/*
+Publish NovelObjectArray of detected markers
+
+Input
+-----
+msg: message published by ar_track_alvar
+
+Output
+------
+*/
 void Alvar::callback(const ar_track_alvar_msgs::AlvarMarkers::ConstPtr& msg) {
-  ROS_INFO_STREAM(msg->markers.size());
   if (msg->markers.size() > 0) {
     novel_msgs::NovelObjectArray arr;
+    arr.header.stamp = ros::Time::now();
 
     for (int i = 0; i < msg->markers.size(); i++) {
       novel_msgs::NovelObject obj;
