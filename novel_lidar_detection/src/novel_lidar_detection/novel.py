@@ -126,6 +126,7 @@ class NovelLidarDetection(object):
         els = self.get_best_offset_es(ls, els)
         er2 = els - ls
         kernel = np.ones(self.window_size) * 1.0/self.window_size
+        # Convolution allows for small gaps to be filled
         er2 = np.convolve(er2, kernel, mode='same')
         detected_objects = er2>self.threshold
 
@@ -141,8 +142,9 @@ class NovelLidarDetection(object):
             else:
                 if in_object:
                     pos_end = i
-                    
-                    detected_objects_position.append((pos_begin, pos_end))
+                    # Offset accounts for the dilation from the convolution
+                    offset = int(math.floor(self.window_size / 2))
+                    detected_objects_position.append((pos_begin+offset, pos_end-offset))
                     in_object = False
             i += 1
         msg = NovelObjectArray()
