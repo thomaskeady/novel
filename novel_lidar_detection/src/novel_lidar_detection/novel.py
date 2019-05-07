@@ -126,12 +126,12 @@ class NovelLidarDetection(object):
         els = self.get_best_offset_es(ls, els)
         er2 = els - ls
         kernel = np.ones(self.window_size) * 1.0/self.window_size
+        # Convolution allows for small gaps to be filled
         er2 = np.convolve(er2, kernel, mode='same')
         detected_objects = er2>self.threshold
 
         # Calculate center of mass of objects
         detected_objects_position = []
-        detected_objects_size = []
         in_object = False
         pos_begin, pos_end, i = 0, 0, 0
         while i < len(detected_objects):
@@ -142,22 +142,24 @@ class NovelLidarDetection(object):
             else:
                 if in_object:
                     pos_end = i
-                    object_size = pos_end-pos_begin
-                    com = math.floor((pos_begin+pos_end)/2)
-                    detected_objects_position.append(int(com))
-                    detected_objects_size.append(object_size)
+                    # Offset accounts for the dilation from the convolution
+                    offset = int(math.floor(self.window_size / 2))
+                    detected_objects_position.append((pos_begin+offset, pos_end-offset))
                     in_object = False
             i += 1
         msg = NovelObjectArray()
         msg.header.frame_id = self.frame_id
         msg.header.stamp = rospy.Time.now()
-        for i,(o,si) in enumerate(zip(detected_objects_position, detected_objects_size)):
-            
+        for i,o in enumerate(detected_objects_position):
+            pos_begin, pos_end = o
+            com = int(math.floor((pos_begin+pos_end)/2))
             m = NovelObject()
-            p,s = self.calculate_position_from_index(si, o, ls)
+            s = self.calculate_segment_lengths(ls[pos_begin:pos_end])
+            p = self.calculate_position_from_index(com, ls)
             if s >= self.size_threshold:
                 m.pose.pose = p
                 m.size = s
+                m.angular_size = pos_end - pos_begin
                 # Make this covariance better?
                 m.pose.covariance = list(np.zeros((6,6)).flatten())
                 m.id = i
@@ -167,7 +169,7 @@ class NovelLidarDetection(object):
         # Publish filtered laser scan
         msg = deepcopy(self.last_scan_msg)
         u_range = np.array(msg.ranges)
-        real_expected = self.last_expected*self.range_max
+        real_expected = els*self.range_max
         u_range[detected_objects] = real_expected[detected_objects]
         intensities = np.zeros(len(u_range))
         intensities[detected_objects] = 1.0
@@ -187,14 +189,13 @@ class NovelLidarDetection(object):
                 best_err = err
         return np.roll(expected_scan, best_offset)
 
-    def calculate_position_from_index(self, angluar_size, median_index, last_scan):
-        angle = math.radians(angluar_size)
-        s = 2*last_scan[median_index]*math.tan(angle/2.0)
+    def calculate_position_from_index(self, median_index, last_scan):
+
         z = self.last_pose.position.z
         rad = float(median_index)/len(last_scan) * 2 * math.pi
-        x = last_scan[median_index] * math.cos(rad) * self.range_max
-        y = last_scan[median_index] * math.sin(rad) * self.range_max
-        return ( Pose(position=Point(x,y,z), orientation=Quaternion(w=1)), s)
+        x = last_scan[median_index] * math.cos(rad + math.pi) * self.range_max
+        y = last_scan[median_index] * math.sin(rad + math.pi) * self.range_max
+        return Pose(position=Point(x,y,z), orientation=Quaternion(w=1))
 
     def pose_callback(self, msg):
         self.last_pose = msg.pose.pose
@@ -213,3 +214,13 @@ class NovelLidarDetection(object):
     def els_callback(self, msg):
         self.last_expected = np.array(msg.ranges)/self.range_max
         self.detect()
+
+    def calculate_segment_lengths(self, p):
+        p1 = p[:-1]
+        a1 = np.radians(range(len(p1)))
+        p2 = p[1:]
+        a2 = np.radians(range(1,len(p2)+1))
+        p12 = p1 ** 2
+        p22 = p2 ** 2
+        o = p12 + p22 - 2*p1*p2*np.cos(a1-a2)
+        return np.sum(np.sqrt(o))
