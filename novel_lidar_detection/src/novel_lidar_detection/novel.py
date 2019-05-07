@@ -123,7 +123,7 @@ class NovelLidarDetection(object):
         ls[np.isinf(ls)] = self.last_scan_msg.range_max
         els = self.last_expected
         els[np.isinf(els)] = self.last_scan_msg.range_max
-        els = self.get_best_offset_es(ls, els)
+        #els = self.get_best_offset_es(ls, els)
         er2 = els - ls
         kernel = np.ones(self.window_size) * 1.0/self.window_size
         # Convolution allows for small gaps to be filled
