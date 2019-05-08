@@ -14,9 +14,9 @@
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
-class Action {
+class Kinect_Action {
   public:
-    Action();
+    Kinect_Action();
     void runAway(int x_run, int y_run);
     void rotateForBetterView(int x_rot, int y_rot);
     void runAndRotate(int x_rot, int y_rot, int x_run, int y_run);
@@ -47,28 +47,23 @@ class Action {
     geometry_msgs::PoseWithCovariance pose;
     
     bool map_known;
-    bool execute_plan;
     bool pose_known;
     
     std::vector<std::string> prev;
     std::vector<std::string> run;
     std::vector<std::string> rotate;
     
-    ros::Time plan_done;
-    
     double min_marker_det_dist;
 };
 
-Action::Action() {
+Kinect_Action::Kinect_Action() {
   map_known = false;
   pose_known = false;
-  execute_plan = false;
-  plan_done = ros::Time::now();
-  min_marker_det_dist = 2.5;
+  // min_marker_det_dist = .5;
 
-  det_sub = nh_.subscribe<novel_msgs::NovelObjectArray>("detected", 1, &Action::det_callback, this);
-  map_sub = nh_.subscribe<nav_msgs::OccupancyGrid>("map", 1, &Action::map_callback, this);
-  pose_sub = nh_.subscribe<geometry_msgs::PoseWithCovarianceStamped>("amcl_pose", 1, &Action::pose_callback, this);
+  det_sub = nh_.subscribe<novel_msgs::NovelObjectArray>("detected", 1, &Kinect_Action::det_callback, this);
+  map_sub = nh_.subscribe<nav_msgs::OccupancyGrid>("map", 1, &Kinect_Action::map_callback, this);
+  pose_sub = nh_.subscribe<geometry_msgs::PoseWithCovarianceStamped>("amcl_pose", 1, &Kinect_Action::pose_callback, this);
 
   map_pub = nh_.advertise<nav_msgs::OccupancyGrid>("map", 1);
   state_pub = nh_.advertise<std_msgs::Int8>("state", 1);
@@ -89,14 +84,9 @@ Output
 ------
 
 */
-void Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& msg) {
-  // time msg was created relative to when last trajectory plan finished
-  int diff_sec = msg->header.stamp.sec - plan_done.sec;
-  int diff_nsec = msg->header.stamp.nsec - plan_done.nsec;
-  // ROS_INFO_STREAM(execute_plan);
+void Kinect_Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& msg) {
   // if we know pose of robot, plan is not currently executing, and msg of detected ids came after plan finished
-
-  if (pose_known) { // && !execute_plan && diff_sec >= 0 && diff_nsec >= 0) {
+  if (pose_known) {
     int x_run = 0;
     int y_run = 0;
     int x_rot = 0;
@@ -127,23 +117,21 @@ void Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& msg) {
       double x_dist = msg->detected_objects[i].pose.pose.position.x;
       double y_dist = msg->detected_objects[i].pose.pose.position.y;  
 
-      if ( sqrt( pow(x_dist,2) + pow(y_dist,2) ) < min_marker_det_dist) { // user-defined threshold
-        // depending on label, turn on bool for specific action
-        if (std::find(run.begin(), run.end(), label) != run.end()) {
-          should_run = true;
-          x_run = x_run + x_coord;
-          y_run = y_run + y_coord;
-          run_count = run_count + 1;
-        } else if (std::find(rotate.begin(), rotate.end(), label) != rotate.end()) {
-          should_rotate = true;
-          x_rot = x_rot + x_coord;
-          y_rot = y_rot + y_coord;
-          rot_count = rot_count + 1;
-        } else {
-          unknown = true;
-        }
-        detected_ids.push_back(label);
+      // depending on label, turn on bool for specific action
+      if (std::find(run.begin(), run.end(), label) != run.end()) {
+        should_run = true;
+        x_run = x_run + x_coord;
+        y_run = y_run + y_coord;
+        run_count = run_count + 1;
+      } else if (std::find(rotate.begin(), rotate.end(), label) != rotate.end()) {
+        should_rotate = true;
+        x_rot = x_rot + x_coord;
+        y_rot = y_rot + y_coord;
+        rot_count = rot_count + 1;
+      } else {
+        unknown = true;
       }
+      detected_ids.push_back(label);
     }
 
     std::sort(detected_ids.begin(), detected_ids.end()); // sort ids but don't think it's necessary
@@ -161,8 +149,22 @@ void Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& msg) {
       prev = detected_ids;
       
       std_msgs::Int8 turn_off;
-      turn_off.data = 0;
+      turn_off.data = 2;
       state_pub.publish(turn_off);
+
+      // get robot coordinates with respect to map frame
+      tf::StampedTransform transform;
+      try {
+        listener.lookupTransform("/map", "/base_link", ros::Time(0), transform);
+      } catch (tf::TransformException ex) {
+        ROS_ERROR("%s", ex.what());
+        ros::Duration(1.0).sleep();
+      }
+
+      double x = transform.getOrigin().x(); // robot coordinate in map frame
+      double y = transform.getOrigin().y();
+      int robot_x = (int)round( (x-map_metadata.origin.position.x)/map_resolution); // robot map grid coordinate
+      int robot_y = (int)round( (y-map_metadata.origin.position.y)/map_resolution);
 
       // average position of detected markers
       // kinect field of view is not very wide so detected markers are probably not very far apart
@@ -178,34 +180,36 @@ void Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& msg) {
         y_run = (int)round( (double)y_run / run_count );
         x_rot = (int)round( (double)x_rot / rot_count );
         y_rot = (int)round( (double)y_rot / rot_count );
+        
+        putObjInMap(x_run, y_run, robot_x, robot_y);
+        putObjInMap(x_rot, y_rot, robot_x, robot_y);
+
         runAndRotate(x_run, y_run, x_rot, y_rot);
       } else if (should_run) {
         ROS_INFO("Run");
         x_run = (int)round( (double)x_run / run_count );
         y_run = (int)round( (double)y_run / run_count );
-        nav_msgs::OccupancyGrid msg1;
-        grid[ y_run*map_metadata.width + x_run ] = 51;
-        grid[ y_run*map_metadata.width + x_run - 1 ] = 49;
-        grid[ y_run*map_metadata.width + x_run + 1 ] = 49;
-        grid[ (y_run-1)*map_metadata.width + x_run ] = 49;
-        grid[ (y_run+1)*map_metadata.width + x_run ] = 49;
-        msg1.data = grid;
-        msg1.info = map_metadata;
-        map_pub.publish(msg1);
+        
+        putObjInMap(x_run, y_run, robot_x, robot_y);
 
         runAway(x_run, y_run);
       } else {
         ROS_INFO("Rotate");
         x_rot = (int)round( (double)x_rot / rot_count );
         y_rot = (int)round( (double)y_rot / rot_count );
+        
+        putObjInMap(x_rot, y_rot, robot_x, robot_y);
+
         rotateForBetterView(x_rot, y_rot);
       }
-
-      std_msgs::Int8 turn_on;
-      turn_on.data = 1;
-      state_pub.publish(turn_on);
+    } else {
+      ROS_INFO_STREAM("Nothing detected.");
     }
   }
+
+  std_msgs::Int8 turn_on;
+  turn_on.data = 0;
+  state_pub.publish(turn_on);
 }
 
 /*
@@ -219,7 +223,7 @@ Output
 ------
 
 */
-void Action::map_callback(const nav_msgs::OccupancyGrid::ConstPtr& msg) {
+void Kinect_Action::map_callback(const nav_msgs::OccupancyGrid::ConstPtr& msg) {
   map_metadata = msg->info;
   grid = msg->data;
   map_resolution = msg->info.resolution;
@@ -236,7 +240,7 @@ msg: pose with covariance of robot sent by amcl
 Output
 ------
 */
-void Action::pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg) {
+void Kinect_Action::pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg) {
   pose_known = true;
   pose = msg->pose;
 }
@@ -252,7 +256,7 @@ y_run: average y grid coordinate of markers to run away from
 Output
 ------
 */
-void Action::runAway(int x_run, int y_run) {
+void Kinect_Action::runAway(int x_run, int y_run) {
   MoveBaseClient ac("move_base", true);
   while (!ac.waitForServer(ros::Duration(5.0))) {
     ROS_INFO("Waiting for move_base action server to come up");
@@ -261,12 +265,11 @@ void Action::runAway(int x_run, int y_run) {
   ROS_INFO("Check if plan is in progress now");
 
   // if we know what map looks like, where robot is, and a plan is not currently executing
-  if (map_known && pose_known && !execute_plan) {
-    execute_plan = true; // start plan
+  if (map_known && pose_known) {
+    bool execute_plan = true; // start plan
     move_base_msgs::MoveBaseGoal goal;
 
     goal.target_pose.header.frame_id = "map"; // goal is relative to this frame
-    goal.target_pose.header.stamp = ros::Time::now();
 
     // get robot coordinates with respect to map frame
     tf::StampedTransform transform;
@@ -325,6 +328,7 @@ void Action::runAway(int x_run, int y_run) {
 
       goal.target_pose.pose.orientation.z = sin(angle/2);
       goal.target_pose.pose.orientation.w = cos(angle/2);
+      goal.target_pose.header.stamp = ros::Time::now();
 
       ROS_INFO_STREAM(marker_x);
       ROS_INFO_STREAM(marker_y);
@@ -340,7 +344,6 @@ void Action::runAway(int x_run, int y_run) {
 	ROS_INFO("Hooray, the base moved");
 	execute_plan = false;
 	prev.clear(); // clear previously detected ids so that robot can run away again if it still sees ids to run away from
-        plan_done = ros::Time::now(); // plan last finished at this time
       } else
 	ROS_INFO("The base failed to move for some reason. We will sample new goal point.");
     }
@@ -358,7 +361,7 @@ y_rot: average y grid coordinate of markers to rotate towards
 Output
 ------
 */
-void Action::rotateForBetterView(int x_rot, int y_rot) {
+void Kinect_Action::rotateForBetterView(int x_rot, int y_rot) {
   MoveBaseClient ac("move_base", true);
   while (!ac.waitForServer(ros::Duration(5.0))) {
     ROS_INFO("Waiting for move_base action server to come up");
@@ -367,12 +370,11 @@ void Action::rotateForBetterView(int x_rot, int y_rot) {
   ROS_INFO("Check if plan is in progress now");
 
   // if we know what map looks like, where robot is, and a plan is not currently executing
-  if (map_known && pose_known && !execute_plan) {
-    execute_plan = true; // start plan
+  if (map_known && pose_known) {
+    bool execute_plan = true; // start plan
     move_base_msgs::MoveBaseGoal goal;
 
     goal.target_pose.header.frame_id = "map"; // goal is relative to this frame
-    goal.target_pose.header.stamp = ros::Time::now();
 
     // pull coordinates from queue
     double x = pose.pose.position.x; // robot world coordinate
@@ -397,8 +399,8 @@ void Action::rotateForBetterView(int x_rot, int y_rot) {
     while (execute_plan) {
       // if amcl cannot send robot closer to marker, then keep robot in same place and just rotate
       if (dist < curr_map_dist) {
-        goal.target_pose.pose.position.x = x_rot * map_resolution + map_metadata.origin.position.x - dist*cos(angle);
-        goal.target_pose.pose.position.y = y_rot * map_resolution + map_metadata.origin.position.y - dist*sin(angle);
+        goal.target_pose.pose.position.x = marker_x - dist*cos(angle);
+        goal.target_pose.pose.position.y = marker_y - dist*sin(angle);
         goal.target_pose.pose.orientation.z = sin(angle/2.0);
         goal.target_pose.pose.orientation.w = cos(angle/2.0);
       } else {
@@ -408,6 +410,7 @@ void Action::rotateForBetterView(int x_rot, int y_rot) {
         goal.target_pose.pose.orientation.w = cos(angle/2.0);
         execute_plan = false; // even if amcl cannot simply rotate robot in place (for some reason), plan is done
       }
+      goal.target_pose.header.stamp = ros::Time::now();
       ROS_INFO_STREAM(angle * 180 / 3.14);
       ROS_INFO("Sending goal");
       ac.sendGoal(goal);
@@ -417,13 +420,9 @@ void Action::rotateForBetterView(int x_rot, int y_rot) {
       if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED) {
         ROS_INFO("Hooray, the base moved");
         execute_plan = false;
-        plan_done = ros::Time::now(); // plan most recently finished
       } else
         ROS_INFO("The base failed to move for some reason. We will sample new goal point.");
         dist = dist + 0.5; // increase distance so robot travels less, leading to (hopefully) easier plan
-        if (!execute_plan) {
-          plan_done = ros::Time::now(); // plan most recently finished
-        }
     }
   }
 }
@@ -441,7 +440,7 @@ y_run: average y grid coordinate of markers to run away from
 Output
 ------
 */
-void Action::runAndRotate(int x_rot, int y_rot, int x_run, int y_run) {
+void Kinect_Action::runAndRotate(int x_rot, int y_rot, int x_run, int y_run) {
   MoveBaseClient ac("move_base", true);
   while (!ac.waitForServer(ros::Duration(5.0))) {
     ROS_INFO("Waiting for move_base action server to come up");
@@ -450,12 +449,11 @@ void Action::runAndRotate(int x_rot, int y_rot, int x_run, int y_run) {
   ROS_INFO("Check if plan is in progress now");
 
   // if we know what map looks like, where robot is, and a plan is not currently executing
-  if (map_known && pose_known && !execute_plan) {
-    execute_plan = true; // start plan
+  if (map_known && pose_known) {
+    bool execute_plan = true; // start plan
     move_base_msgs::MoveBaseGoal goal;
 
     goal.target_pose.header.frame_id = "map"; // goal is relative to this frame
-    goal.target_pose.header.stamp = ros::Time::now();
 
     // pull coordinates from queue
     double x = pose.pose.position.x; // robot world coordinate
@@ -502,6 +500,7 @@ void Action::runAndRotate(int x_rot, int y_rot, int x_run, int y_run) {
 
       goal.target_pose.pose.orientation.z = sin(angle/2.0);
       goal.target_pose.pose.orientation.w = cos(angle/2.0);
+      goal.target_pose.header.stamp = ros::Time::now();
 
       ROS_INFO("Sending goal");
       ac.sendGoal(goal);
@@ -512,7 +511,6 @@ void Action::runAndRotate(int x_rot, int y_rot, int x_run, int y_run) {
         ROS_INFO("Hooray, the base moved");
         execute_plan = false;
         prev.clear(); // clear previously detected IDs in case it still needs to run away
-        plan_done = ros::Time::now(); // most recently finished plan
       } else
         ROS_INFO("The base failed to move for some reason. We will sample new goal point.");
     }
@@ -533,7 +531,7 @@ weights: empty vector of vector of doubles
 Output
 ------
 i*/
-void Action::constructRunGrid(int marker_x, int marker_y, int robot_x, int robot_y, std::vector<std::vector<double>>& weights) {
+void Kinect_Action::constructRunGrid(int marker_x, int marker_y, int robot_x, int robot_y, std::vector<std::vector<double>>& weights) {
   // construct grid of weights based on distance from marker location
   // see which indices of grid create obstruction between robot and marker and increase weight for those
   // of those indices, add weight based on distance from where robot currently is
@@ -543,7 +541,7 @@ void Action::constructRunGrid(int marker_x, int marker_y, int robot_x, int robot
   for (int i = 0; i < map_metadata.height; i++) {
     for (int j = 0; j < map_metadata.width; j++) {
       // check if this grid index is not where marker is and make sure it is accessible
-      if ((grid[i*map_metadata.width + j] == 0) && (grid[i*map_metadata.width + j] >= 0) && robot_x != j && robot_y != i) {
+      if ((grid[i*map_metadata.width + j] == 0) && robot_x != j && robot_y != i) {
         double dist_x = abs(marker_x - j); // distance from marker position
         double dist_y = abs(marker_y - i);
 
@@ -643,13 +641,16 @@ Output
 ------
 
 */
-void Action::constructRunRotGrid(int x_rot, int y_rot, int x_run, int y_run, int robot_x, int robot_y, std::vector<std::vector<double>>& weights) {
+void Kinect_Action::constructRunRotGrid(int x_rot, int y_rot, int x_run, int y_run, int robot_x, int robot_y, std::vector<std::vector<double>>& weights) {
+  bool nowhereToHide = true;
+  double longestDist = calcDistance(0, 0, map_metadata.width, map_metadata.height); // length of map diagonal
+
   for (int i = 0; i < map_metadata.height; i++) {
     for (int j = 0; j < map_metadata.width; j++) {
       // check if this grid index is not where average marker positions are  and make sure it is accessible
-      if ( j != x_rot && i != y_rot && j != x_run && i != y_run && j != robot_x && i != robot_y && grid[i*map_metadata.width + j] < 50 && grid[i*map_metadata.width + j] >= 0) {
-        int dist_x = abs(x_rot - j); // distance from marker position
-        int dist_y = abs(y_rot - i);
+      if ( j != x_rot && i != y_rot && j != x_run && i != y_run && j != robot_x && i != robot_y && grid[i*map_metadata.width + j] == 0) {
+        double dist_x = abs(x_rot - j); // distance from marker position
+        double dist_y = abs(y_rot - i);
         int sign_x = (x_rot - j) / abs(x_rot - j); // direction of marker relative to i,j grid index along x,y axes
         int sign_y = (y_rot - i) / abs(y_rot - i);
         double slope = dist_y / dist_x;
@@ -677,7 +678,7 @@ void Action::constructRunRotGrid(int x_rot, int y_rot, int x_run, int y_run, int
           if (x == x_rot) {
             // add weight
             double dist = pow( calcDistance(j, i, x_run, y_run), 2 ); // experimental formula
-            weights[i][j] = weights[i][j] + dist;
+            weights[i][j] = pow( dist, 2 );
           }
         } else {
           double inv_slope;
@@ -701,7 +702,7 @@ void Action::constructRunRotGrid(int x_rot, int y_rot, int x_run, int y_run, int
           if (y == y_rot) {
             // add weight
             double dist = pow( calcDistance(j, i, x_run, y_run), 2 ); // experimental formula
-            weights[i][j] = weights[i][j] + dist;
+            weights[i][j] = pow( dist, 2 );
           }
         }
       }
@@ -723,7 +724,7 @@ Output
 ------
 distance between two 2D points
 */
-double Action::calcDistance(double x1, double y1, double x2, double y2) {
+double Kinect_Action::calcDistance(double x1, double y1, double x2, double y2) {
   double x = x1 - x2;
   double y = y1 - y2;
   double dist = sqrt(pow(x,2) + pow(y,2));
@@ -734,14 +735,22 @@ double Action::calcDistance(double x1, double y1, double x2, double y2) {
 /*
 
 */
-void Action::putObjInMap(double obj_x, double obj_y, double robot_x, double robot_y) {
-
+void Kinect_Action::putObjInMap(double obj_x, double obj_y, double robot_x, double robot_y) {
+  nav_msgs::OccupancyGrid msg1;
+  grid[ obj_y*map_metadata.width + obj_x ] = 51;
+  grid[ obj_y*map_metadata.width + obj_x - 1 ] = 49;
+  grid[ obj_y*map_metadata.width + obj_x + 1 ] = 49;
+  grid[ (obj_y-1)*map_metadata.width + obj_x ] = 49;
+  grid[ (obj_y+1)*map_metadata.width + obj_x ] = 49;
+  msg1.data = grid;
+  msg1.info = map_metadata;
+  map_pub.publish(msg1);
 }
 
 int main(int argc, char** argv){
   ros::init(argc, argv, "action");
 
-  Action action;
+  Kinect_Action kinect_action;
   
   ros::spin();
 }

@@ -1,0 +1,8 @@
+<launch>
+  <include file="$(find detect_aruco)/launch/kinect_alvar.launch">
+  </include>
+
+  <node name="action_node" pkg="action" type="LIDAR_actions" output="screen"/>
+
+  <node name="testing" pkg="action" type="testing" output="screen"/>
+</launch>

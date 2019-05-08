@@ -64,7 +64,7 @@ void Alvar::callback(const ar_track_alvar_msgs::AlvarMarkers::ConstPtr& msg) {
 void Alvar::callback2(const std_msgs::Int8::ConstPtr& msg) {
   if (msg->data == 1) {
     on = true;
-  } else if (msg->data == 0) {
+  } else {
     on = false;
   }
 }
