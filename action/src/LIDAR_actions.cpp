@@ -57,7 +57,7 @@ LIDAR_Action::LIDAR_Action() {
   map_known = false;
   pose_known = false;
   on = true;
-  min_marker_det_dist = .5;
+  min_marker_det_dist = .75;
 
   det_sub = nh_.subscribe<novel_msgs::NovelObjectArray>("candidates", 1000, &LIDAR_Action::push_to_queue, this);
   map_sub = nh_.subscribe<nav_msgs::OccupancyGrid>("map", 1, &LIDAR_Action::map_callback, this);
@@ -145,8 +145,6 @@ void LIDAR_Action::approach() {
   ROS_INFO_STREAM(LIDAR_candidates.size());
   if (pose_known && on) {
     while (!LIDAR_candidates.empty()) {
-      ROS_INFO_STREAM("HELLO");
-
       std::vector<double> loc = LIDAR_candidates.front();      
 
       double x_obj = loc[0];
@@ -196,6 +194,7 @@ void LIDAR_Action::approach() {
           std_msgs::Int8 kinect_detect;
           kinect_detect.data = 1;
           state_pub.publish(kinect_detect);
+          
           ROS_INFO_STREAM("Detecting marker");
           boost::shared_ptr<ar_track_alvar_msgs::AlvarMarkers const> shared_arr;
           ar_track_alvar_msgs::AlvarMarkers arr;
@@ -205,6 +204,12 @@ void LIDAR_Action::approach() {
             if (arr.markers.size() > 0) {
               detect = true;
               ROS_INFO_STREAM("Marker detected");
+
+              // wait till message received that action is done
+              boost::shared_ptr<std_msgs::Int8 const> shared_int;
+              std_msgs::Int8 integer;
+              shared_int = ros::topic::waitForMessage<std_msgs::Int8>("moved", nh_);
+              ROS_INFO_STREAM("Done moving");
             } else {
               ROS_INFO_STREAM("Marker not detected");
             }

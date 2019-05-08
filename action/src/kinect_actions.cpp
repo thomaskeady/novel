@@ -37,6 +37,7 @@ class Kinect_Action {
 
     ros::Publisher map_pub;
     ros::Publisher state_pub;
+    ros::Publisher done_moving;
 
     tf::TransformListener listener;
 
@@ -67,10 +68,11 @@ Kinect_Action::Kinect_Action() {
 
   map_pub = nh_.advertise<nav_msgs::OccupancyGrid>("map", 1);
   state_pub = nh_.advertise<std_msgs::Int8>("state", 1);
+  done_moving = nh_.advertise<std_msgs::Int8>("moved", 1);
 
   prev = {}; // ids detected for previous plan
-  run = {"2", "4", "6", "8", "10", "12", "14", "16"}; // ids to run away from
-  rotate = {"0", "1", "3", "5", "7", "9", "11", "13", "15", "17"}; // ids to get a better view of
+  run = {"0", "1", "2", "4", "6", "8", "10", "12", "14", "16"}; // ids to run away from
+  rotate = {"3", "5", "7", "9", "11", "13", "15", "17"}; // ids to get a better view of
 }
 
 /*
@@ -87,6 +89,10 @@ Output
 void Kinect_Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& msg) {
   // if we know pose of robot, plan is not currently executing, and msg of detected ids came after plan finished
   if (pose_known) {
+    std_msgs::Int8 turn_off;
+    turn_off.data = 2;
+    state_pub.publish(turn_off);
+
     int x_run = 0;
     int y_run = 0;
     int x_rot = 0;
@@ -148,10 +154,6 @@ void Kinect_Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& m
     if (!nothing_new && detected_ids.size() > 0) {
       prev = detected_ids;
       
-      std_msgs::Int8 turn_off;
-      turn_off.data = 2;
-      state_pub.publish(turn_off);
-
       // get robot coordinates with respect to map frame
       tf::StampedTransform transform;
       try {
@@ -210,6 +212,10 @@ void Kinect_Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& m
   std_msgs::Int8 turn_on;
   turn_on.data = 0;
   state_pub.publish(turn_on);
+
+  std_msgs::Int8 done;
+  done.data = 1;
+  done_moving.publish(done);
 }
 
 /*

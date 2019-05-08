@@ -1,6 +1,6 @@
 <launch>
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find expected_scan_generator)/rviz/view_laserscans.rviz"/>
-  
+
   <param name="min_angle" value="0"/>
   <param name="max_angle" value="6.28319"/>
   <param name="range" value="3.5"/>
@@ -21,7 +21,11 @@
   <include file="$(find detect_aruco)/launch/kinect_alvar_real.launch">
   </include>
 
-  <node name="action_node" pkg="action" type="LIDAR_actions" output="screen"/>
+  <node name="action_node" pkg="action" type="kinect_actions" output="screen"/>
+
+  <node name="LIDAR_action" pkg="action" type="LIDAR_actions" output="screen"/>
+
+  <node name="testing" pkg="action" type="testing" output="screen"/>
 
   <node name="rplidarNode"          pkg="rplidar_ros"  type="rplidarNode" output="screen">
     <param name="serial_port"         type="string" value="/dev/ttyUSB0"/>
