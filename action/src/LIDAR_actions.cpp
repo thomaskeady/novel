@@ -68,7 +68,17 @@ LIDAR_Action::LIDAR_Action() {
 }
 
 /*
+Changes state value to indicate progression of finite state machine
+0 - move based on LIDAR detected objects
+1 - detect using kinect
+2 - move based on kinect detected markers
 
+Input
+-----
+msg: integer message
+
+Output
+------
 */
 void LIDAR_Action::state_callback(const std_msgs::Int8::ConstPtr& msg) {
   if (msg->data == 0) {
@@ -79,7 +89,14 @@ void LIDAR_Action::state_callback(const std_msgs::Int8::ConstPtr& msg) {
 }
 
 /*
+Pushes LIDAR detected objects into queue
 
+Input
+-----
+msg: array of novel objects detected
+
+Output
+------
 */
 void LIDAR_Action::push_to_queue(const novel_msgs::NovelObjectArray::ConstPtr& msg) {
   // convert Point msg to grid coordinate wrt map frame
@@ -142,7 +159,8 @@ void LIDAR_Action::approach() {
   while (!ac.waitForServer(ros::Duration(5.0))) {
     ROS_INFO("Waiting for move_base action server to come up");
   }
-  ROS_INFO_STREAM(LIDAR_candidates.size());
+
+  // ROS_INFO_STREAM(LIDAR_candidates.size());
   if (pose_known && on) {
     while (!LIDAR_candidates.empty()) {
       std::vector<double> loc = LIDAR_candidates.front();      
@@ -209,13 +227,13 @@ void LIDAR_Action::approach() {
               boost::shared_ptr<std_msgs::Int8 const> shared_int;
               std_msgs::Int8 integer;
               shared_int = ros::topic::waitForMessage<std_msgs::Int8>("moved", nh_);
-              ROS_INFO_STREAM("Done moving");
+              ROS_INFO_STREAM("Done with marker action.");
             } else {
-              ROS_INFO_STREAM("Marker not detected");
+              ROS_INFO_STREAM("Marker not detected.");
             }
           }
         } else {
-          ROS_INFO_STREAM("Could not move");
+          ROS_INFO_STREAM("Could not approach LIDAR-detected object. Skipping LIDAR action.");
         }
 
         angle = angle + 3.1415/4;
