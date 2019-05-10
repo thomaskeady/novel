@@ -1,15 +1,31 @@
 <!-- I don't know if "turtlebot_navigate" is the right name for this file -->
 
 <launch>
-<arg name="gui" default="true" />
-<arg name="world_file" default="$(find turtlebot_gazebo)/worlds/playground.world"/>
+<!-- Begin boilerplate code -->
+<arg name="lidar_port" default="/dev/ttyUSB1"/>
+<arg name="use_controller" default="false" />
+<group>
+<remap from="scan" to="raw_scan"/>
+<include file="$(find novel_bringup)/launch/include/turtlebot_common.launch">
+
+
+<arg name="lidar_port" default="$(arg lidar_port)"/>
+<arg name="use_controller" value="$(arg use_controller)" />
+
+
+</include>
+</group>
+<!-- End boilerplate code -->
+
 
 <group>
-  <include file="$(find turtlebot_gazebo)/launch/amcl_demo.launch">
+<arg name="map_file" value="$(find expected_scan_generator)/../maps/outside_B08C.yaml"/>
+  <!-- <include file="$(find turtlebot_gazebo)/launch/amcl_demo.launch"> -->
+  <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
+  <include file="$(find novel_bringup)/launch/include/novel_amcl.launch">
       <!--<arg name="map_file" value="$(find expected_scan_generator)/map_by_thomas.yaml"/>-->
-      <!--<arg name="map_file" value="$(find expected_scan_generator)/../maps/9e_suite.yaml"/>-->
       <!--<arg name="map_file" value="$(find expected_scan_generator)/../maps/outside_B08E.yaml"/>-->
-      <arg name="map_file" value="$(find expected_scan_generator)/../maps/outside_b17.yaml"/>
+      
     </include>
 
 </group>
@@ -26,29 +42,8 @@
   <param name="in_scan_topic" value="raw_scan"/>
   <param name="threshold" value="0.05"/>
 </node>
-
-  <param name="robot_description" command="$(find xacro)/xacro.py --inorder $(find novel_gazebo)/model/turtlebot_lidar/turtlebot_lidar.urdf.xacro"/>
-  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -model turtlebot_lidar" />
-  <node name="robot_state_publisher_2" pkg="robot_state_publisher" type="state_publisher"/> <!-- there i go again, jankifying everything -->
-
 <!-- Spin up the real turtlebot --> 
 <include file="$(find turtlebot_bringup)/launch/minimal.launch">
   <!--<arg name="serialport" value="usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0" />-->
-
 </include>
-
-<!-- is this the best way to start the rplidar node? -->
-<node name="rplidarNode"          pkg="rplidar_ros"  type="rplidarNode" output="screen">
-  <remap from="scan" to="raw_scan"/>
-
-  <!--<param name="serial_port"         type="string" value="/dev/ttyUSB0"/>-->
-  <param name="serial_port"         type="string" value="/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0"/>
-  <param name="serial_baudrate"     type="int"    value="115200"/><!--A1/A2 -->
-  <!--param name="serial_baudrate"     type="int"    value="256000"--><!--A3 -->
-  <param name="frame_id"            type="string" value="camera_depth_frame"/>
-  <param name="inverted"            type="bool"   value="false"/>
-  <param name="angle_compensate"    type="bool"   value="true"/>
-</node>
-
-
 </launch>
