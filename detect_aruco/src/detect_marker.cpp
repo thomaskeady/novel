@@ -3,6 +3,7 @@
 #include <ar_track_alvar_msgs/AlvarMarkers.h>
 #include <novel_msgs/NovelObject.h>
 #include <novel_msgs/NovelObjectArray.h>
+#include <std_msgs/Int8.h>
 
 class Alvar {
   public:
@@ -10,17 +11,22 @@ class Alvar {
 
   private:
     void callback(const ar_track_alvar_msgs::AlvarMarkers::ConstPtr& msg);
+    void callback2(const std_msgs::Int8::ConstPtr& msg);
 
     ros::NodeHandle nh_;
 
     ros::Publisher pub;
     ros::Subscriber sub;
+    ros::Subscriber state_sub;
+
+    bool on;
 };
 
 Alvar::Alvar() {
+  on = false;
   pub = nh_.advertise<novel_msgs::NovelObjectArray>("detected", 1000);
   sub = nh_.subscribe<ar_track_alvar_msgs::AlvarMarkers>("ar_pose_marker", 1000, &Alvar::callback, this);
-
+  state_sub = nh_.subscribe<std_msgs::Int8>("state", 1, &Alvar::callback2, this);
 }
 
 /*
@@ -34,7 +40,7 @@ Output
 ------
 */
 void Alvar::callback(const ar_track_alvar_msgs::AlvarMarkers::ConstPtr& msg) {
-  if (msg->markers.size() > 0) {
+  if (msg->markers.size() > 0 && on) {
     novel_msgs::NovelObjectArray arr;
     arr.header.stamp = ros::Time::now();
 
@@ -52,6 +58,14 @@ void Alvar::callback(const ar_track_alvar_msgs::AlvarMarkers::ConstPtr& msg) {
     }
 
     pub.publish(arr);
+  }
+}
+
+void Alvar::callback2(const std_msgs::Int8::ConstPtr& msg) {
+  if (msg->data == 1) {
+    on = true;
+  } else {
+    on = false;
   }
 }
 

@@ -1,0 +1,38 @@
+<launch>
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find expected_scan_generator)/rviz/view_laserscans.rviz"/>
+
+  <param name="min_angle" value="0"/>
+  <param name="max_angle" value="6.28319"/>
+  <param name="range" value="3.5"/>
+  <node pkg="expected_scan_generator" type="expected_scan_generator" name="expected_scan_node"/>
+
+  <node name="robot_state_publisher_2" pkg="robot_state_publisher" type="state_publisher"/>
+
+  <node pkg="novel_lidar_detection" type="novel_lidar_detection" name="novel_lidar_detection">
+    <param name="out_scan_topic" value="scan"/>
+    <param name="in_scan_topic" value="raw_scan"/>
+    <param name="covariance_threshold" value="0.008"/>
+  </node>
+
+  <include file="$(find action)/launch/amcl_demo.launch">
+    <arg name="map_file" value="/home/tkeady1/catkin_ws/src/530_707_independent_project/maps/hackerman_hallway_raph.yaml"/>
+  </include>
+
+  <include file="$(find detect_aruco)/launch/kinect_alvar_real.launch">
+  </include>
+
+  <node name="action_node" pkg="action" type="kinect_actions" output="screen"/>
+
+  <node name="LIDAR_action" pkg="action" type="LIDAR_actions" output="screen"/>
+
+  <node name="testing" pkg="action" type="testing" output="screen"/>
+
+  <node name="rplidarNode"          pkg="rplidar_ros"  type="rplidarNode" output="screen">
+    <param name="serial_port"         type="string" value="/dev/ttyUSB0"/>
+    <param name="serial_baudrate"     type="int"    value="115200"/><!--A1/A2 -->
+    <!--param name="serial_baudrate"     type="int"    value="256000"--><!--A3 -->
+    <param name="frame_id"            type="string" value="camera_depth_frame"/>
+    <param name="inverted"            type="bool"   value="false"/>
+    <param name="angle_compensate"    type="bool"   value="true"/>
+  </node>
+</launch>

@@ -5,15 +5,18 @@ This file based on the turtlebot_world launch file in the novel_gazebo package
 Modified by Thomas Keady for RSP Spring 2019
 -->
 <!-- Begin boilerplate code -->
+
 <arg name="lidar_port" default="/dev/ttyUSB1"/>
 <arg name="use_controller" default="false" />
 
+<group>
 <include file="$(find novel_bringup)/launch/include/turtlebot_common.launch">
 <arg name="lidar_port" default="$(arg lidar_port)"/>
 <arg name="use_controller" value="$(arg use_controller)" />
 
 
 </include>
+</group>
 <!-- End boilerplate code -->
 
 <include file="$(find turtlebot_navigation)/launch/gmapping_demo.launch"></include>

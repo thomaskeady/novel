@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   novel_msgs
   nav_msgs
   geometry_msgs
+  tf
 )
 
 ## System dependencies are found with CMake's conventions
@@ -142,11 +143,13 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/action_node.cpp)
-add_executable(action src/navigation_actions.cpp)
+add_executable(kinect_actions src/kinect_actions.cpp)
 add_executable(testing src/test_novel_msg.cpp)
+add_executable(LIDAR_actions src/LIDAR_actions.cpp)
 
-add_dependencies(action ${catkin_EXPORTED_TARGETS})
+add_dependencies(kinect_actions ${catkin_EXPORTED_TARGETS})
 add_dependencies(testing ${catkin_EXPORTED_TARGETS})
+add_dependencies(LIDAR_actions ${catkin_EXPORTED_TARGETS})
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -161,8 +164,9 @@ add_dependencies(testing ${catkin_EXPORTED_TARGETS})
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
-target_link_libraries(action ${catkin_LIBRARIES})
+target_link_libraries(kinect_actions ${catkin_LIBRARIES})
 target_link_libraries(testing ${catkin_LIBRARIES})
+target_link_libraries(LIDAR_actions ${catkin_LIBRARIES})
 
 #############
 ## Install ##
