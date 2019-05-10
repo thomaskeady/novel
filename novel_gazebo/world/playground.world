@@ -645,13 +645,13 @@
     <include>
       <uri>model://marker0</uri>
       <name>marker0</name>
-      <pose>1.3 -0.1 0.3 0 0 0</pose>
+      <pose>2.0 -0.1 0.3 0 0 0</pose>
     </include>
 
     <include>
       <uri>model://marker1</uri>
       <name>marker1</name>
-      <pose>1.3 0.3 0.4 0 0 0</pose>
+      <pose>2.0 0.3 0.4 0 0 0</pose>
     </include>
   </world>
 </sdf>

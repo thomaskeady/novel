@@ -4,34 +4,25 @@ This file based on the turtlebot_world launch file in the novel_gazebo package
 
 Modified by Thomas Keady for RSP Spring 2019
 -->
+<!-- Begin boilerplate code -->
+<arg name="lidar_port" default="/dev/ttyUSB1"/>
+<arg name="use_controller" default="false" />
 
-<arg name="gui" default="true" />
-<arg name="world_file" default="$(find turtlebot_gazebo)/worlds/playground.world"/>
+<include file="$(find novel_bringup)/launch/include/turtlebot_common.launch">
+<arg name="lidar_port" default="$(arg lidar_port)"/>
+<arg name="use_controller" value="$(arg use_controller)" />
 
-<include file="$(find turtlebot_gazebo)/launch/gmapping_demo.launch"></include>
+
+</include>
+<!-- End boilerplate code -->
+
+<include file="$(find turtlebot_navigation)/launch/gmapping_demo.launch"></include>
 
 <!-- For visualizing map building -->
 <include file="$(find turtlebot_rviz_launchers)/launch/view_navigation.launch"></include>
 
 <node pkg="expected_scan_generator" type="expected_scan_generator" name="expected_scan_node"/>
 
-<param name="robot_description" command="$(find xacro)/xacro.py --inorder $(find novel_gazebo)/model/turtlebot_lidar/turtlebot_lidar.urdf.xacro"/>
-<node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -model turtlebot_lidar" />
-<node name="robot_state_publisher_2" pkg="robot_state_publisher" type="state_publisher"/> <!-- This is janky... -->
-
-<!-- Spin up the real turtlebot --> 
-<include file="$(find turtlebot_bringup)/launch/minimal.launch"></include>
-
-<!-- is this the best way to start the rplidar node? -->
-<node name="rplidarNode"          pkg="rplidar_ros"  type="rplidarNode" output="screen">
-  <!--<param name="serial_port"         type="string" value="/dev/ttyUSB0"/>-->
-  <param name="serial_port"         type="string" value="/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0"/>
-  <param name="serial_baudrate"     type="int"    value="115200"/><!--A1/A2 -->
-  <!--param name="serial_baudrate"     type="int"    value="256000"--><!--A3 -->
-  <param name="frame_id"            type="string" value="camera_depth_frame"/>
-  <param name="inverted"            type="bool"   value="false"/>
-  <param name="angle_compensate"    type="bool"   value="true"/>
-</node>
 
 
 </launch>
