@@ -77,7 +77,7 @@ public:
 		nh_.param<float>("min_angle", min_angle, -3.14);
 		nh_.param<float>("max_angle", max_angle, 3.14);
 		nh_.param<int>("points_per_scan", points_per_scan, 360);
-		nh_.param<float>("range", range, 2);
+		nh_.param<float>("range", range, 10);
 		nh_.param<bool>("map_known", map_known, false);
 		nh_.param<bool>("pose_known", pose_known, false);
 		angle_increment = std::abs(min_angle - max_angle)/(float)points_per_scan;
@@ -167,9 +167,13 @@ public:
 				//ROS_INFO("OG val of (%d, %d): %d\tindex: %d", x_coord, y_coord, grid[index], index);
 				//ROS_INFO("looking at (%d, %d)", x_coord, y_coord);
 	
-				if (grid[index] > 50)  // 100 means occupied
+				if (grid[index] == 100)  // 100 means occupied
 				{
 					break;
+				} else if (grid[index] == 50) 
+				{
+					break; // If we want to ignore novel objects, do we need to do anything here either?
+					// OH wait, the idea is that this node can look at Raph's detected objects and mark their locations on the occupancy grid?
 				} // Otherwise, inf? leave at max for now TODO
 
 			}
