@@ -1,7 +1,25 @@
 <launch>
+
+<!-- Begin boilerplate code -->
+<!--<arg name="lidar_port" default="/dev/ttyUSB1"/>
+<arg name="use_controller" default="false" />-->
+<group>
+<remap from="scan" to="raw_scan"/>
+<include file="$(find novel_bringup)/launch/include/turtlebot_common.launch">
+
+
+<arg name="lidar_port" default="$(arg lidar_port)"/>
+<arg name="use_controller" value="$(arg use_controller)" />
+
+
+</include>
+</group>
+<!-- End boilerplate code -->
+
+
   <arg name="gui" default="true" />
   <arg name="world_file" default="$(find novel_gazebo)/world/playground.world"/>
-
+ <arg name="map_file" value="$(find expected_scan_generator)/map_by_thomas.yaml"/>  
   <group>
     <remap from="scan" to="raw_scan"/>
     <env name="GAZEBO_MODEL_PATH" value="$(find novel_gazebo)/model"/>
@@ -14,9 +32,10 @@
   </group>
 
   <group>
-    <include file="$(find turtlebot_gazebo)/launch/amcl_demo.launch">
-      <arg name="map_file" value="$(find expected_scan_generator)/map_by_thomas.yaml"/>
-    </include>
+    
+    <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
+    <include file="$(find novel_bringup)/launch/include/novel_amcl.launch"/>
+    <include file="$(find turtlebot_navigation)/launch/includes/move_base.launch.xml"/>
   </group>
 
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find expected_scan_generator)/rviz/view_laserscans.rviz"/>
@@ -38,10 +57,11 @@
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher"/>
 
   <!-- Velocity muxer -->
-  <node pkg="nodelet" type="nodelet" name="mobile_base_nodelet_manager" args="manager"/>
-  <node pkg="nodelet" type="nodelet" name="cmd_vel_mux"
-      args="load yocs_cmd_vel_mux/CmdVelMuxNodelet mobile_base_nodelet_manager">
-    <param name="yaml_cfg_file" value="$(find turtlebot_bringup)/param/mux.yaml" />
-    <remap from="cmd_vel_mux/output" to="mobile_base/commands/velocity"/>
-  </node>
+ <node pkg="nodelet" type="nodelet" name="mobile_base_nodelet_manager" args="manager"/>
+ <node pkg="nodelet" type="nodelet" name="cmd_vel_mux"
+       args="load yocs_cmd_vel_mux/CmdVelMuxNodelet mobile_base_nodelet_manager">
+   <param name="yaml_cfg_file" value="$(find turtlebot_bringup)/param/mux.yaml" />
+   <remap from="cmd_vel_mux/output" to="mobile_base/commands/velocity"/>
+ </node>
+ <node name="novel_tf_publisher" pkg="novel_lidar_detection" type="novel_publish_tf"/>
 </launch>

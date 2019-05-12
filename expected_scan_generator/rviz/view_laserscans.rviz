@@ -11,8 +11,10 @@ Panels:
         - /Global Map1/Planner1
         - /Local Map1/Planner1
         - /Local Map1/Trajectory Cloud1
+        - /Camera1
         - /DepthCloud1/Auto Size1
         - /TF2
+        - /MarkerArray1
       Splitter Ratio: 0.5
     Tree Height: 298
   - Class: rviz/Selection
@@ -34,8 +36,6 @@ Panels:
     Name: Time
     SyncMode: 0
     SyncSource: LaserScan
-Toolbars:
-  toolButtonStyle: 2
 Visualization Manager:
   Class: ""
   Displays:
@@ -270,7 +270,7 @@ Visualization Manager:
       Max Color: 255; 255; 255
       Max Intensity: 3.13022365e-37
       Min Color: 0; 0; 0
-      Min Intensity: 0
+      Min Intensity: 2.29311799e-36
       Name: LaserScan
       Position Transformer: XYZ
       Queue Size: 10
@@ -555,10 +555,11 @@ Visualization Manager:
           Value: true
         Map: true
         Marker: true
+        MarkerArray: true
         PointCloud2: true
         RobotModel: true
         TF: true
-        Value: true
+        Value: false
       Zoom Factor: 1
     - Alpha: 1
       Auto Size:
@@ -641,15 +642,170 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        base_footprint:
+          Value: false
+        base_link:
+          Value: true
+        base_scan:
+          Value: false
+        camera_depth_frame:
+          Value: false
+        camera_depth_optical_frame:
+          Value: false
+        camera_link:
+          Value: false
+        camera_rgb_frame:
+          Value: false
+        camera_rgb_optical_frame:
+          Value: false
+        caster_back_link:
+          Value: false
+        caster_front_link:
+          Value: false
+        cliff_sensor_front_link:
+          Value: false
+        cliff_sensor_left_link:
+          Value: false
+        cliff_sensor_right_link:
+          Value: false
+        gyro_link:
+          Value: false
+        map:
+          Value: false
+        odom:
+          Value: false
+        plate_bottom_link:
+          Value: false
+        plate_middle_link:
+          Value: false
+        plate_top_link:
+          Value: false
+        pole_bottom_0_link:
+          Value: false
+        pole_bottom_1_link:
+          Value: false
+        pole_bottom_2_link:
+          Value: false
+        pole_bottom_3_link:
+          Value: false
+        pole_bottom_4_link:
+          Value: false
+        pole_bottom_5_link:
+          Value: false
+        pole_kinect_0_link:
+          Value: false
+        pole_kinect_1_link:
+          Value: false
+        pole_middle_0_link:
+          Value: false
+        pole_middle_1_link:
+          Value: false
+        pole_middle_2_link:
+          Value: false
+        pole_middle_3_link:
+          Value: false
+        pole_top_0_link:
+          Value: false
+        pole_top_1_link:
+          Value: false
+        pole_top_2_link:
+          Value: false
+        pole_top_3_link:
+          Value: false
+        wheel_left_link:
+          Value: false
+        wheel_right_link:
+          Value: false
       Marker Scale: 1
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        {}
+        map:
+          odom:
+            base_footprint:
+              base_link:
+                base_scan:
+                  {}
+                camera_rgb_frame:
+                  camera_depth_frame:
+                    camera_depth_optical_frame:
+                      {}
+                  camera_link:
+                    {}
+                  camera_rgb_optical_frame:
+                    {}
+                caster_back_link:
+                  {}
+                caster_front_link:
+                  {}
+                cliff_sensor_front_link:
+                  {}
+                cliff_sensor_left_link:
+                  {}
+                cliff_sensor_right_link:
+                  {}
+                gyro_link:
+                  {}
+                plate_bottom_link:
+                  {}
+                plate_middle_link:
+                  {}
+                plate_top_link:
+                  {}
+                pole_bottom_0_link:
+                  {}
+                pole_bottom_1_link:
+                  {}
+                pole_bottom_2_link:
+                  {}
+                pole_bottom_3_link:
+                  {}
+                pole_bottom_4_link:
+                  {}
+                pole_bottom_5_link:
+                  {}
+                pole_kinect_0_link:
+                  {}
+                pole_kinect_1_link:
+                  {}
+                pole_middle_0_link:
+                  {}
+                pole_middle_1_link:
+                  {}
+                pole_middle_2_link:
+                  {}
+                pole_middle_3_link:
+                  {}
+                pole_top_0_link:
+                  {}
+                pole_top_1_link:
+                  {}
+                pole_top_2_link:
+                  {}
+                pole_top_3_link:
+                  {}
+                wheel_left_link:
+                  {}
+                wheel_right_link:
+                  {}
       Update Interval: 0
-      Value: false
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /marker_array
+      Name: MarkerArray
+      Namespaces:
+        detected_object_0: true
+        detected_object_1: true
+        detected_object_2: true
+        detected_object_3: true
+        detected_object_4: true
+        detected_object_5: true
+        detected_object_6: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
