@@ -100,7 +100,7 @@ public:
 
 	void ogCb(const nav_msgs::OccupancyGrid::ConstPtr& msg) 
 	{
-		ROS_INFO("OGCB");
+		//ROS_INFO("OGCB");
 		map_known = true;
 		map_metadata = msg->info;
 		grid = msg->data;
@@ -109,7 +109,7 @@ public:
 	// For now just store the data and run it at a constant rate in the main loop 
 	void poseCb(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg) 
 	{
-		ROS_INFO("poseCb");
+		//ROS_INFO("poseCb");
 		pose_known = true;
 		pose = msg->pose;
 	}
