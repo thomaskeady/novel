@@ -1,5 +1,5 @@
 <launch>
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find expected_scan_generator)/rviz/view_laserscans.rviz"/>
+  <!--<node name="rviz" pkg="rviz" type="rviz" args="-d $(find expected_scan_generator)/rviz/view_laserscans.rviz"/>-->
 
   <param name="min_angle" value="0"/>
   <param name="max_angle" value="6.28319"/>
@@ -14,9 +14,10 @@
     <param name="covariance_threshold" value="0.008"/>
   </node>
 
-  <include file="$(find action)/launch/amcl_demo.launch">
-    <arg name="map_file" value="/home/tkeady1/catkin_ws/src/530_707_independent_project/maps/outside_B08E.yaml"/>
-  </include>
+  <!--<include file="$(find action)/launch/amcl_demo.launch">
+    <arg name="map_file" value="/home/tkeady1/catkin_ws/src/530_707_independent_project/maps/hodson_210.yaml"/>
+
+  </include>-->
 
   <include file="$(find detect_aruco)/launch/kinect_alvar_real.launch">
   </include>
