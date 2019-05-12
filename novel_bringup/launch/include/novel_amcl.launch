@@ -1,7 +1,22 @@
 <launch>
 <!-- This launch files standardizes parameters for AMCL -->
+
+<!--<arg name="move_base/recovery_behavior_enabled"/>
+<arg name="move_base/clearing_rotation_allowed"/>
+<arg name="move_base/max_rot_vel"/>-->
+
+<arg name="recovery_behavior_enabled"/>
+<arg name="clearing_rotation_allowed"/>
+<arg name="max_rot_vel"/>
+
 <node pkg="amcl" type="amcl" name="amcl">
     <param name="use_map_topic"             value="map"/>
+
+    <!-- Whitcomb's recommended motion params for more direct path planning -->
+    <param name="move_base/recovery_behavior_enabled" value="$(arg recovery_behavior_enabled)"/>
+    <param name="move_base/clearing_rotation_allowed" value="$(arg clearing_rotation_allowed)"/>
+    <param name="move_base/max_rot_vel" value="$(arg max_rot_vel)"/>
+
     <!-- Publish scans from best pose at a max of 10 Hz -->
     <param name="odom_model_type"           value="diff"/>
     <param name="odom_alpha5"               value="0.1"/>
