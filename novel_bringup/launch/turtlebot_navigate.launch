@@ -48,6 +48,7 @@
     <arg name="custom_param_file" value="$(arg custom_param_file)"/>
   </include>
 
+<node pkg="novel_lidar_detection" type="novel_objects_filter" name="novel_objects_filter"/>
 
 
 </launch>
