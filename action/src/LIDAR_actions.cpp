@@ -59,7 +59,7 @@ LIDAR_Action::LIDAR_Action() {
   on = true;
   min_marker_det_dist = .75;
 
-  det_sub = nh_.subscribe<novel_msgs::NovelObjectArray>("lidar_objects", 1000, &LIDAR_Action::push_to_queue, this);
+  det_sub = nh_.subscribe<novel_msgs::NovelObjectArray>("candidates", 1000, &LIDAR_Action::push_to_queue, this);
   map_sub = nh_.subscribe<nav_msgs::OccupancyGrid>("map", 1, &LIDAR_Action::map_callback, this);
   pose_sub = nh_.subscribe<geometry_msgs::PoseWithCovarianceStamped>("amcl_pose", 1, &LIDAR_Action::pose_callback, this);
 
@@ -101,7 +101,7 @@ Output
 void LIDAR_Action::push_to_queue(const novel_msgs::NovelObjectArray::ConstPtr& msg) {
   // convert Point msg to grid coordinate wrt map frame
   for (int i = 0; i < msg->detected_objects.size(); i++) {
-    geometry_msgs::PoseStamped pose;
+/*    geometry_msgs::PoseStamped pose;
     geometry_msgs::PoseStamped pose_out;
 
     pose.header.frame_id = "/base_scan";
@@ -118,11 +118,11 @@ void LIDAR_Action::push_to_queue(const novel_msgs::NovelObjectArray::ConstPtr& m
 
     double x = pose_out.pose.position.x;
     double y = pose_out.pose.position.y;
-
-    /*
+*/
+    
     double x = msg->detected_objects[i].pose.pose.position.x;
     double y = msg->detected_objects[i].pose.pose.position.y;
-    */
+    
     int x_coord = (int)round((x - map_metadata.origin.position.x)/map_resolution);
     int y_coord = (int)round((y - map_metadata.origin.position.y)/map_resolution);
 
