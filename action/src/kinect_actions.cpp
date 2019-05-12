@@ -60,7 +60,7 @@ class Kinect_Action {
 Kinect_Action::Kinect_Action() {
   map_known = false;
   pose_known = false;
-  // min_marker_det_dist = .5;
+  min_marker_det_dist = 1.0;
 
   det_sub = nh_.subscribe<novel_msgs::NovelObjectArray>("detected", 1, &Kinect_Action::det_callback, this);
   map_sub = nh_.subscribe<nav_msgs::OccupancyGrid>("map", 1, &Kinect_Action::map_callback, this);
@@ -120,26 +120,28 @@ void Kinect_Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& m
       int x_coord = (int)round((transform.getOrigin().x() - map_metadata.origin.position.x)/map_resolution);
       int y_coord = (int)round((transform.getOrigin().y() - map_metadata.origin.position.y)/map_resolution);
 
-      putObjInMap(x_coord, y_coord);
-
       double x_dist = msg->detected_objects[i].pose.pose.position.x;
       double y_dist = msg->detected_objects[i].pose.pose.position.y;  
 
-      // depending on label, turn on bool for specific action
-      if (std::find(run.begin(), run.end(), label) != run.end()) {
-        should_run = true;
-        x_run = x_run + x_coord;
-        y_run = y_run + y_coord;
-        run_count = run_count + 1;
-      } else if (std::find(rotate.begin(), rotate.end(), label) != rotate.end()) {
-        should_rotate = true;
-        x_rot = x_rot + x_coord;
-        y_rot = y_rot + y_coord;
-        rot_count = rot_count + 1;
-      } else {
-        unknown = true;
+      if (sqrt( pow(x_dist, 2) + pow(y_dist, 2) ) < min_marker_det_dist) {
+        putObjInMap(x_coord, y_coord);
+
+        // depending on label, turn on bool for specific action
+        if (std::find(run.begin(), run.end(), label) != run.end()) {
+          should_run = true;
+          x_run = x_run + x_coord;
+          y_run = y_run + y_coord;
+          run_count = run_count + 1;
+        } else if (std::find(rotate.begin(), rotate.end(), label) != rotate.end()) {
+          should_rotate = true;
+          x_rot = x_rot + x_coord;
+          y_rot = y_rot + y_coord;
+          rot_count = rot_count + 1;
+        } else {
+          unknown = true;
+        }
+        detected_ids.push_back(label);
       }
-      detected_ids.push_back(label);
     }
 
     std::sort(detected_ids.begin(), detected_ids.end()); // sort ids but don't think it's necessary
@@ -199,18 +201,24 @@ void Kinect_Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& m
         
         rotateForBetterView(x_rot, y_rot);
       }
+
+      std_msgs::Int8 done;
+      done.data = 1;
+      done_moving.publish(done);
     } else {
       ROS_INFO_STREAM("Nothing detected.");
+
+      ros::Duration(0.5).sleep();
+
+      std_msgs::Int8 done;
+      done.data = 0;
+      done_moving.publish(done);
     }
   }
 
   std_msgs::Int8 turn_on;
   turn_on.data = 0;
   state_pub.publish(turn_on);
-
-  std_msgs::Int8 done;
-  done.data = 1;
-  done_moving.publish(done);
 }
 
 /*

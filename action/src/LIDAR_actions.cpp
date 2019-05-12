@@ -101,7 +101,8 @@ Output
 void LIDAR_Action::push_to_queue(const novel_msgs::NovelObjectArray::ConstPtr& msg) {
   // convert Point msg to grid coordinate wrt map frame
   for (int i = 0; i < msg->detected_objects.size(); i++) {
-/*    tf::StampedTransform transform;
+    
+    tf::StampedTransform transform;
     try {
       listener.lookupTransform("/map", "/base_scan", ros::Time(0), transform);
     } catch (tf::TransformException ex) {
@@ -124,10 +125,10 @@ void LIDAR_Action::push_to_queue(const novel_msgs::NovelObjectArray::ConstPtr& m
     tf::Vector3 obj_in_map_frame = R * obj + t;
     x = obj_in_map_frame.getX();
     y = obj_in_map_frame.getY();
-*/
+    /*
     double x = msg->detected_objects[i].pose.pose.position.x;
     double y = msg->detected_objects[i].pose.pose.position.y;
-  
+    */
     int x_coord = (int)round((x - map_metadata.origin.position.x)/map_resolution);
     int y_coord = (int)round((y - map_metadata.origin.position.y)/map_resolution);
 
@@ -193,7 +194,7 @@ void LIDAR_Action::approach() {
       goal.target_pose.header.frame_id = "map"; // goal is relative to this frame
       
       int i = 0;
-      while (!detect && i < 1) { //8) {
+      while (!detect && i < 8) {
         goal.target_pose.pose.position.x = x_obj - min_marker_det_dist * cos(angle);
         goal.target_pose.pose.position.y = y_obj - min_marker_det_dist * sin(angle);
         
@@ -220,14 +221,20 @@ void LIDAR_Action::approach() {
           if (shared_arr != NULL) {
             arr = *shared_arr;
             if (arr.markers.size() > 0) {
-              detect = true;
               ROS_INFO_STREAM("Marker detected");
 
               // wait till message received that action is done
               boost::shared_ptr<std_msgs::Int8 const> shared_int;
               std_msgs::Int8 integer;
               shared_int = ros::topic::waitForMessage<std_msgs::Int8>("moved", nh_);
-              ROS_INFO_STREAM("Done with marker action.");
+
+              integer = *shared_int;
+              if (integer.data == 1) {
+                detect = true;
+                ROS_INFO_STREAM("Done with marker action");
+              } else {
+                ROS_INFO_STREAM("Not the marker associated with the object detected.");
+              }
             } else {
               ROS_INFO_STREAM("Marker not detected.");
             }
