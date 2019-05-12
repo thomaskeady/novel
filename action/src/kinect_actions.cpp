@@ -71,8 +71,8 @@ Kinect_Action::Kinect_Action() {
   done_moving = nh_.advertise<std_msgs::Int8>("moved", 1);
 
   prev = {}; // ids detected for previous plan
-  run = {"2", "4", "6", "8", "10", "12", "14", "16"}; // ids to run away from
-  rotate = {"0", "1", "3", "5", "7", "9", "11", "13", "15", "17"}; // ids to get a better view of
+  run = {"0", "2", "4", "6", "8", "10", "12", "14", "16"}; // ids to run away from
+  rotate = {"1", "3", "5", "7", "9", "11", "13", "15", "17"}; // ids to get a better view of
 }
 
 /*

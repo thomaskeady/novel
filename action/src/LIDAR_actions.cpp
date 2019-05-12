@@ -59,7 +59,7 @@ LIDAR_Action::LIDAR_Action() {
   on = true;
   min_marker_det_dist = .75;
 
-  det_sub = nh_.subscribe<novel_msgs::NovelObjectArray>("candidates", 1000, &LIDAR_Action::push_to_queue, this);
+  det_sub = nh_.subscribe<novel_msgs::NovelObjectArray>("lidar_objects", 1000, &LIDAR_Action::push_to_queue, this);
   map_sub = nh_.subscribe<nav_msgs::OccupancyGrid>("map", 1, &LIDAR_Action::map_callback, this);
   pose_sub = nh_.subscribe<geometry_msgs::PoseWithCovarianceStamped>("amcl_pose", 1, &LIDAR_Action::pose_callback, this);
 
