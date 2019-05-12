@@ -63,7 +63,7 @@ public:
 
             for (std::vector<novel_msgs::NovelObject>::iterator it = uniques.begin() ; it != uniques.end(); ++it)
             {
-                float dist = sqrt((msg->detected_objects.pose.position.x - it->pose.position.x)**2 + (msg->detected_objects.pose.position.y - it->pose.position.y)**2);
+                float dist = sqrt((msg->detected_objects[i].pose.position.x - it->pose.position.x)**2 + (msg->detected_objects[i].pose.position.y - it->pose.position.y)**2);
 
                 if (closest_distance > dist)
                 {
@@ -75,33 +75,30 @@ public:
 
             if (!matched_existing) {
                 // Create new object in uniques
-
+                uniques.append(msg->detected_objects[i]);
             } 
             else 
             {
                 // Update closest_NO
-
+                // Just take an average for now
+                closest_NO->pose.position.x = (closest_NO->pose.position.x + msg->detected_objects[i].pose.position.x)/2;
+                closest_NO->pose.position.y = (closest_NO->pose.position.y + msg->detected_objects[i].pose.position.y)/2;
             }
 
         }
 
-
+        novel_msgs::NovelObjectArray to_publish[uniques.size];
+        int count = 0;
+        for (std::vector<novel_msgs::NovelObject>::iterator it = uniques.begin() ; it != uniques.end(); ++it)
+        {
+            to_publish[count] = *it;
+            ++count;
+        }
 
         // Need to construct to_publish?
         filtered_novel_objects_pub.publish(to_publish);
     }
 
-/*
-    void mapCb(const nav_msgs::OccupancyGrid::ConstPtr& msg)
-    {
-        if (!got_map) {
-            grid = msg->data;
-            map_metadata = msg->info;
-            got_map = true;
-        }
-        
-    }
-*/
 
 };
 
