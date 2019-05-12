@@ -27,6 +27,7 @@ private:
 	// Other
 	std::vector<novel_msgs::NovelObject> uniques;
     float distance_thresh;
+    int8_t id; 
 
 public:
     NOFilter(ros::NOFilter& nh) :
@@ -41,7 +42,7 @@ public:
 		novel_objects_sub(nh_.subscribe("lidar_objects", 100, &MapUpdater::novelObjectsCb, this))
 
         // Other
-        
+        id(0);
 
 	{
         nh_.param<float>("distance_thresh", distance_thresh, 0.5);
@@ -75,19 +76,23 @@ public:
 
             if (!matched_existing) {
                 // Create new object in uniques
+                msg->detected_objects[i].id = id; // If error cause const, change uniques.back
+                ++id;
                 uniques.append(msg->detected_objects[i]);
             } 
             else 
             {
                 // Update closest_NO
                 // Just take an average for now
+                // Should size or angular_size play a role in this too?
                 closest_NO->pose.position.x = (closest_NO->pose.position.x + msg->detected_objects[i].pose.position.x)/2;
                 closest_NO->pose.position.y = (closest_NO->pose.position.y + msg->detected_objects[i].pose.position.y)/2;
             }
 
-        }
+        } // What if something should be removed from this list? Too long without being seen?
 
-        novel_msgs::NovelObjectArray to_publish[uniques.size];
+        // Need to construct to_publish?
+        novel_msgs::NovelObjectArray to_publish[uniques.size]; // May need to just clear instead of re-declare
         int count = 0;
         for (std::vector<novel_msgs::NovelObject>::iterator it = uniques.begin() ; it != uniques.end(); ++it)
         {
@@ -95,7 +100,6 @@ public:
             ++count;
         }
 
-        // Need to construct to_publish?
         filtered_novel_objects_pub.publish(to_publish);
     }
 
