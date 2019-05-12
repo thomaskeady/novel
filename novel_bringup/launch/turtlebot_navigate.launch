@@ -18,6 +18,9 @@
 <!-- End boilerplate code -->
 
 
+<!--<include file="$(find turtlebot_navigation)/launch/includes/move_base.launch.xml"/>-->
+
+
 <group>
 <arg name="map_file" default="$(find expected_scan_generator)/../maps/marins_pod.yaml"/>
   <!-- <include file="$(find turtlebot_gazebo)/launch/amcl_demo.launch"> -->
@@ -42,8 +45,7 @@
 
 
 
-<!--<arg name="custom_param_file" default="$(find turtlebot_navigation)/param/kinect_costmap_params.yaml"/> path to dummy file -->
-<arg name="custom_param_file" default="$(find novel_bringup)/launch/param/move_base_custom_params.yaml"/>
+<arg name="custom_param_file" default="$(find turtlebot_navigation)/param/kinect_costmap_params.yaml"/>
   <include file="$(find turtlebot_navigation)/launch/includes/move_base.launch.xml">
     <arg name="custom_param_file" value="$(arg custom_param_file)"/>
   </include>

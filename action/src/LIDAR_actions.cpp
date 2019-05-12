@@ -101,30 +101,25 @@ Output
 void LIDAR_Action::push_to_queue(const novel_msgs::NovelObjectArray::ConstPtr& msg) {
   // convert Point msg to grid coordinate wrt map frame
   for (int i = 0; i < msg->detected_objects.size(); i++) {
-    
+    geometry_msgs::PoseStamped pose;
+    geometry_msgs::PoseStamped pose_out;
+
+    pose.header.frame_id = "/base_scan";
+    pose.pose = msg->detected_objects[i].pose.pose;
+
     tf::StampedTransform transform;
     try {
-      listener.lookupTransform("/map", "/base_scan", ros::Time(0), transform);
+      listener.transformPose("/map", pose, pose_out);
+      // listener.lookupTransform("/map", "/base_scan", ros::Time(0), transform);
     } catch (tf::TransformException ex) {
       ROS_ERROR("%s", ex.what());
       ros::Duration(1.0).sleep();
     }
- 
-    double x = transform.getOrigin().x();
-    double y = transform.getOrigin().y();
-    double z = transform.getOrigin().z();
-    tf::Quaternion q = transform.getRotation();
-    tf::Matrix3x3 R(q);
-    tf::Vector3 t(x,y,z);
 
-    double x_obj = msg->detected_objects[i].pose.pose.position.x;
-    double y_obj = msg->detected_objects[i].pose.pose.position.y;
-    double z_obj = msg->detected_objects[i].pose.pose.position.z;
-    tf::Vector3 obj(x_obj, y_obj, z_obj);
-
-    tf::Vector3 obj_in_map_frame = R * obj + t;
-    x = obj_in_map_frame.getX();
-    y = obj_in_map_frame.getY();
+    double x = pose_out.pose.position.x;
+    double y = pose_out.pose.position.y;
+    ROS_INFO_STREAM(x);
+    ROS_INFO_STREAM(y);
     /*
     double x = msg->detected_objects[i].pose.pose.position.x;
     double y = msg->detected_objects[i].pose.pose.position.y;
