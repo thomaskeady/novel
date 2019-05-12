@@ -22,14 +22,10 @@
 
 
 <group>
-<arg name="map_file" value="$(find expected_scan_generator)/../maps/hackerman_hallway_raph.yaml"/>
+<arg name="map_file" value="$(find expected_scan_generator)/../maps/marins_pod.yaml"/>
   <!-- <include file="$(find turtlebot_gazebo)/launch/amcl_demo.launch"> -->
   <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
   <include file="$(find novel_bringup)/launch/include/novel_amcl.launch">
-      <!--<arg name="map_file" value="$(find expected_scan_generator)/map_by_thomas.yaml"/>-->
-      <!--<arg name="map_file" value="$(find expected_scan_generator)/../maps/9e_suite.yaml"/>-->
-      <!--<arg name="map_file" value="$(find expected_scan_generator)/../maps/outside_B08E.yaml"/>-->
-      
     </include>
 
 </group>
@@ -57,3 +53,4 @@
 
 
 </launch>
+

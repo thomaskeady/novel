@@ -5,15 +5,19 @@ This file based on the turtlebot_world launch file in the novel_gazebo package
 Modified by Thomas Keady for RSP Spring 2019
 -->
 <!-- Begin boilerplate code -->
-<arg name="lidar_port" default="/dev/ttyUSB1"/>
+
+<!--<arg name="lidar_port" default="/dev/ttyUSB1"/>-->
+<arg name="lidar_port" default="/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0"/>
 <arg name="use_controller" default="false" />
 
+<group>
 <include file="$(find novel_bringup)/launch/include/turtlebot_common.launch">
 <arg name="lidar_port" default="$(arg lidar_port)"/>
 <arg name="use_controller" value="$(arg use_controller)" />
 
 
 </include>
+</group>
 <!-- End boilerplate code -->
 
 <include file="$(find turtlebot_navigation)/launch/gmapping_demo.launch"></include>
@@ -22,9 +26,6 @@ Modified by Thomas Keady for RSP Spring 2019
 <include file="$(find turtlebot_rviz_launchers)/launch/view_navigation.launch"></include>
 
 <node pkg="expected_scan_generator" type="expected_scan_generator" name="expected_scan_node"/>
-
-
-
 
 
 

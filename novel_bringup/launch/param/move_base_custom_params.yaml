@@ -1,0 +1,9 @@
+# Values here recommended by Whitcomb for more direct path planning 
+# Taken from https://dscl.lcsr.jhu.edu/home/courses/me530707-2019/#Module_7nbsp_nbspWeek_of_March_13_2019_Turtlebot-2_Simulation_in_Gazebo_SLAM_Navigation_Adaptive_Monte-Carlo_Localization
+
+recovery_behavior_enabled: false
+clearing_rotation_allowed: false
+
+DWAPlannerROS: 
+  max_rot_vel: 1.0
+

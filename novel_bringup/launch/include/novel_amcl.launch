@@ -1,5 +1,6 @@
 <launch>
 <!-- This launch files standardizes parameters for AMCL -->
+
 <node pkg="amcl" type="amcl" name="amcl">
     <param name="use_map_topic"             value="map"/>
     <!-- Publish scans from best pose at a max of 10 Hz -->
