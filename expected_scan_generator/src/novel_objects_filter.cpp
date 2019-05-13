@@ -60,7 +60,9 @@ public:
         // Get coords of new novel objects
         // If close enough to existing objects, consider same & update object position
         // Publish
-	    novel_msgs::NovelObjectArray noa;
+	ROS_INFO("Inside NOCB, %d" % (msg->detected_objects.size(), uniques.size()));
+	
+	novel_msgs::NovelObjectArray noa;
         for (int i = 0; i < msg->detected_objects.size(); ++i) 
         {
             bool matched_existing = false;
@@ -93,7 +95,7 @@ public:
                 // Update closest_NO
                 // Just take an average for now
                 // Should size or angular_size play a role in this too?
-                try{
+                /*try{
                 listener.lookupTransform("/turtle2", "/turtle1",
                                         ros::Time(0), transform);
                 }
@@ -101,7 +103,7 @@ public:
                 ROS_ERROR("%s",ex.what());
                 ros::Duration(1.0).sleep();
                 continue;
-    }
+    }*/
                 closest_NO->pose.pose.position.x = (closest_NO->pose.pose.position.x + msg->detected_objects[i].pose.pose.position.x)/2;
                 closest_NO->pose.pose.position.y = (closest_NO->pose.pose.position.y + msg->detected_objects[i].pose.pose.position.y)/2;
             }
