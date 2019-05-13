@@ -1,6 +1,5 @@
 <launch>
-  <include file="$(find detect_aruco)/launch/kinect_alvar.launch">
-  </include>
+  <include file="$(find detect_aruco)/launch/kinect_alvar.launch"/> 
 
   <node name="kinect_action" pkg="action" type="kinect_actions" output="screen"/>
 
