@@ -49,10 +49,13 @@
     <param name="yaml_cfg_file" value="$(find turtlebot_bringup)/param/mux.yaml" />
     <remap from="cmd_vel_mux/output" to="mobile_base/commands/velocity"/>
   </node>
-
-  <node name="novel_tf_publisher" pkg="novel_lidar_detection" type="novel_publish_tf"/>
+<param name="detected_object_topic" value="filtered_lidar_objects"/>
+  <node name="novel_tf_publisher" pkg="novel_lidar_detection" type="novel_publish_tf">
+  
+  </node>
 <node pkg="expected_scan_generator" type="novel_objects_filter" name="novel_objects_filter" output="screen">
 </node>
+
 
 </launch>
 
