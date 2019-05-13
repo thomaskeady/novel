@@ -51,6 +51,8 @@
   </node>
 
   <node name="novel_tf_publisher" pkg="novel_lidar_detection" type="novel_publish_tf"/>
+<node pkg="expected_scan_generator" type="novel_objects_filter" name="novel_objects_filter" output="screen">
+</node>
 
 </launch>
 
