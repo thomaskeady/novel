@@ -14,14 +14,18 @@
     <param name="covariance_threshold" value="0.008"/>
   </node>
 
-  <include file="$(find action)/launch/amcl_demo.launch">
-    <arg name="map_file" value="/home/tkeady1/catkin_ws/src/530_707_independent_project/maps/hackerman_hallway_raph.yaml"/>
-  </include>
+  <arg name="map_file" value="/home/tkeady1/catkin_ws/src/530_707_independent_project/maps/hackerman_hallway_raph.yaml"/>
+
+  <group>
+    <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
+    <include file="$(find novel_bringup)/launch/include/novel_amcl.launch"/>
+    <include file="$(find turtlebot_navigation)/launch/includes/move_base.launch.xml"/>
+  </group>
 
   <include file="$(find detect_aruco)/launch/kinect_alvar_real.launch">
   </include>
 
-  <node name="action_node" pkg="action" type="kinect_actions" output="screen"/>
+  <node name="kinect_action" pkg="action" type="kinect_actions" output="screen"/>
 
   <node name="LIDAR_action" pkg="action" type="LIDAR_actions" output="screen"/>
 
@@ -35,4 +39,6 @@
     <param name="inverted"            type="bool"   value="false"/>
     <param name="angle_compensate"    type="bool"   value="true"/>
   </node>
+
+  <node name="novel_tf_publisher" pkg="novel_lidar_detection" type="novel_publish_tf"/>
 </launch>
