@@ -15,13 +15,13 @@
   </group>
 
   <group>
-    <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
+<!--    <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
     <include file="$(find novel_bringup)/launch/include/novel_amcl.launch"/>
-    <include file="$(find turtlebot_navigation)/launch/includes/move_base.launch.xml"/>
+    <include file="$(find turtlebot_navigation)/launch/includes/move_base.launch.xml"/> -->
 
-<!--    <include file="$(find turtlebot_gazebo)/launch/amcl_demo.launch">
+    <include file="$(find turtlebot_gazebo)/launch/amcl_demo.launch">
       <arg name="map_file" value="$(find expected_scan_generator)/map_by_thomas.yaml"/>
-    </include> -->
+    </include>
   </group>
 
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find expected_scan_generator)/rviz/view_laserscans.rviz"/>
@@ -53,4 +53,3 @@
   <node name="novel_tf_publisher" pkg="novel_lidar_detection" type="novel_publish_tf"/>
 
 </launch>
-

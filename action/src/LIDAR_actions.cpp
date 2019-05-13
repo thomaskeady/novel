@@ -26,6 +26,7 @@ class LIDAR_Action {
     void map_callback(const nav_msgs::OccupancyGrid::ConstPtr& msg);
     void pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg);
     void state_callback(const std_msgs::Int8::ConstPtr& msg);
+    void putObjInMap(double obj_x, double obj_y);
 
     ros::NodeHandle nh_;
     ros::Subscriber det_sub;
@@ -126,6 +127,8 @@ void LIDAR_Action::push_to_queue(const novel_msgs::NovelObjectArray::ConstPtr& m
     */
     int x_coord = (int)round((x - map_metadata.origin.position.x)/map_resolution);
     int y_coord = (int)round((y - map_metadata.origin.position.y)/map_resolution);
+
+    putObjInMap(x_coord, y_coord);
 
     std::vector<double> coord = {x, y};
     LIDAR_candidates.push(coord);
@@ -230,6 +233,8 @@ void LIDAR_Action::approach() {
               } else {
                 ROS_INFO_STREAM("Not the marker associated with the object detected.");
               }
+
+              ros::Duration(1.0).sleep();
             } else {
               ROS_INFO_STREAM("Marker not detected.");
             }
@@ -279,6 +284,22 @@ void LIDAR_Action::pose_callback(const geometry_msgs::PoseWithCovarianceStamped:
   pose_known = true;
   pose = msg->pose;
 }
+
+/*
+Testing purposes
+*/
+void LIDAR_Action::putObjInMap(double obj_x, double obj_y) { //, double robot_x, double robot_y) {
+  nav_msgs::OccupancyGrid msg1;
+  grid[ obj_y*map_metadata.width + obj_x ] = 51;
+  grid[ obj_y*map_metadata.width + obj_x - 1 ] = 49;
+  grid[ obj_y*map_metadata.width + obj_x + 1 ] = 49;
+  grid[ (obj_y-1)*map_metadata.width + obj_x ] = 49;
+  grid[ (obj_y+1)*map_metadata.width + obj_x ] = 49;
+  msg1.data = grid;
+  msg1.info = map_metadata;
+  map_pub.publish(msg1);
+}
+
 
 int main(int argc, char** argv){
   ros::init(argc, argv, "action");

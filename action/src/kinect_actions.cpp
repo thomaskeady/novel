@@ -206,6 +206,8 @@ void Kinect_Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& m
         rotateForBetterView(x_rot, y_rot);
       }
 
+      ros::Duration(0.5).sleep();
+
       std_msgs::Int8 done;
       done.data = 1;
       done_moving.publish(done);
