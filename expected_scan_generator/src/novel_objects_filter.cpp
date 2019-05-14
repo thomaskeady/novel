@@ -34,7 +34,7 @@ private:
     float distance_thresh;
     int8_t id; 
     std::string fixed_frame;
-    
+    bool continous_publish;
     tf::TransformListener &listener_;
 
 public:
@@ -54,7 +54,7 @@ public:
         nh_.param<std::string>("filtered_objects_topic", out_topic, "filtered_lidar_objects");
         nh_.param<std::string>("lidar_objects_topic", in_topic,"lidar_objects");
         nh_.param<std::string>("fixed_frame", fixed_frame, "/map");
-
+        nh_.param<bool>("continous_publish", continous_publish, false);
 
         // Publishers
         filtered_novel_objects_pub = nh_.advertise<novel_msgs::NovelObjectArray>(out_topic, 100);
@@ -70,7 +70,10 @@ public:
         // If close enough to existing objects, consider same & update object position
         // Publish
         novel_msgs::NovelObjectArray noa;
-
+        if(continous_publish){
+            noa.header = msg->header;
+            noa.header.frame_id = fixed_frame;
+        }
         for (int i = 0; i < msg->detected_objects.size(); ++i) 
         {
             
@@ -84,26 +87,34 @@ public:
             spose.header = msg->header;
             spose.pose = current_obj.pose.pose;
             geometry_msgs::PoseStamped spose_out;
-            
+            //spose_out = spose;           
 
             try{
+                listener_.waitForTransform(fixed_frame, "/base_scan",msg->header.stamp, ros::Duration(3.0));
                 listener_.transformPose(fixed_frame, spose, spose_out);
             }
             catch (tf::TransformException &ex) {
-                ROS_ERROR("%s",ex.what());
+                ROS_ERROR("Filter encountered tf error: %s",ex.what());
             }
-
+            int j = 0;
             for (std::vector<geometry_msgs::Pose>::iterator it = uniques.begin() ; it != uniques.end(); it++)
             {
                 
                 float dist = sqrt(pow(spose_out.pose.position.x - it->position.x, 2) + pow(spose_out.pose.position.y - it->position.y, 2));
-                ROS_INFO("Distance %f", dist);
+                // ROS_INFO("Distance %f", dist);
                 if (dist < closest_distance)
                 {
                     matched_existing = true;
                     closest_NO = it;
                     closest_distance = dist;
                 }
+                if(continous_publish){
+                    novel_msgs::NovelObject no;
+                    no.pose.pose = *it;
+                    no.id = j;
+                    noa.detected_objects.push_back(no);
+                }
+                j++;
             }
             
             if (!matched_existing) {
@@ -111,13 +122,15 @@ public:
                 //msg->detected_objects[i].id = id; // If error cause const, change uniques.back
                 //++id;
                 ROS_INFO("New object detected");
-                noa.detected_objects.push_back(msg->detected_objects[i]);
-		        noa.detected_objects.back().id = id++;
+                if (!continous_publish) {
+                    noa.detected_objects.push_back(msg->detected_objects[i]);
+		            noa.detected_objects.back().id = id++;
+                }
                 uniques.push_back(spose_out.pose);
             } 
             else 
             {
-                ROS_INFO("Connected object");
+                // ROS_INFO("Connected object");
                 // Update closest_NO
                 // Just take an average for now
                 // Should size or angular_size play a role in this too
@@ -139,7 +152,7 @@ public:
           //  to_publish[count] = uniques[i];
             //++count;
         //}
-
+        
         filtered_novel_objects_pub.publish(noa);
     }
 
@@ -157,13 +170,14 @@ int main (int argc, char** argv)
 
 	NOFilter f = NOFilter(nh, listener);
 
-	ros::Rate r(10);
+        ros::spin();
+/*	ros::Rate r(10);
 	while (ros::ok()) 
 	{
 		ros::spinOnce();
 		r.sleep();
 	}
-	
+*/	
 }
 
 

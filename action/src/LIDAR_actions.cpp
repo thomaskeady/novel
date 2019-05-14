@@ -37,7 +37,7 @@ class LIDAR_Action {
     ros::Publisher map_pub;
     ros::Publisher state_pub;
 
-    tf::TransformListener listener;
+    // static tf::TransformListener listener;
 
     nav_msgs::MapMetaData map_metadata;
     float map_resolution;
@@ -107,31 +107,32 @@ void LIDAR_Action::push_to_queue(const novel_msgs::NovelObjectArray::ConstPtr& m
 
     pose.header.frame_id = "/base_scan";
     pose.pose = msg->detected_objects[i].pose.pose;
-
-    tf::StampedTransform transform;
     try {
-      listener.transformPose("/map", pose, pose_out);
-      // listener.lookupTransform("/map", "/base_scan", ros::Time(0), transform);
+      tf::TransformListener listener;
+      listener.waitForTransform("/map", "/base_scan", ros::Time(0), ros::Duration(1.0));
+      listener.transformPose("/map", ros::Time(0), pose, "/base_scan", pose_out);
+      
+      double x = pose_out.pose.position.x;
+      double y = pose_out.pose.position.y;
+      ROS_INFO_STREAM(x);
+      ROS_INFO_STREAM(y);
+      
+      //double x = msg->detected_objects[i].pose.pose.position.x;
+      //double y = msg->detected_objects[i].pose.pose.position.y;
+      
+      int x_coord = (int)round((x - map_metadata.origin.position.x)/map_resolution);
+      int y_coord = (int)round((y - map_metadata.origin.position.y)/map_resolution);
+
+      if (sqrt( pow(pose.pose.position.x,2) + pow(pose.pose.position.y,2)) < 16) {
+        putObjInMap(x_coord, y_coord); // testing purposes
+
+        std::vector<double> coord = {x, y};
+        LIDAR_candidates.push(coord);
+      }
     } catch (tf::TransformException ex) {
       ROS_ERROR("%s", ex.what());
       ros::Duration(1.0).sleep();
     }
-
-    double x = pose_out.pose.position.x;
-    double y = pose_out.pose.position.y;
-    ROS_INFO_STREAM(x);
-    ROS_INFO_STREAM(y);
-    /*
-    double x = msg->detected_objects[i].pose.pose.position.x;
-    double y = msg->detected_objects[i].pose.pose.position.y;
-    */
-    int x_coord = (int)round((x - map_metadata.origin.position.x)/map_resolution);
-    int y_coord = (int)round((y - map_metadata.origin.position.y)/map_resolution);
-
-    putObjInMap(x_coord, y_coord);
-
-    std::vector<double> coord = {x, y};
-    LIDAR_candidates.push(coord);
   }
 
   if (msg->detected_objects.size() > 0) {
@@ -158,9 +159,9 @@ void LIDAR_Action::approach() {
   while (!ac.waitForServer(ros::Duration(5.0))) {
     ROS_INFO("Waiting for move_base action server to come up");
   }
-
+  ROS_INFO("Ready to move");
   // ROS_INFO_STREAM(LIDAR_candidates.size());
-  if (pose_known && on) {
+  if (map_known && pose_known && on) {
     while (!LIDAR_candidates.empty()) {
       std::vector<double> loc = LIDAR_candidates.front();      
 
@@ -170,6 +171,8 @@ void LIDAR_Action::approach() {
       // get robot coordinates with respect to map frame
       tf::StampedTransform transform;
       try {
+        tf::TransformListener listener;
+        listener.waitForTransform("/map", "/base_link", ros::Time(0), ros::Duration(1.0));
         listener.lookupTransform("/map", "/base_link", ros::Time(0), transform);
       } catch (tf::TransformException ex) {
         ROS_ERROR("%s", ex.what());
@@ -192,7 +195,7 @@ void LIDAR_Action::approach() {
       goal.target_pose.header.frame_id = "map"; // goal is relative to this frame
       
       int i = 0;
-      while (!detect && i < 8) {
+      while (!detect && i < 1) { //8) {
         goal.target_pose.pose.position.x = x_obj - min_marker_det_dist * cos(angle);
         goal.target_pose.pose.position.y = y_obj - min_marker_det_dist * sin(angle);
         
@@ -211,7 +214,9 @@ void LIDAR_Action::approach() {
           std_msgs::Int8 kinect_detect;
           kinect_detect.data = 1;
           state_pub.publish(kinect_detect);
-          
+         
+          ros::Duration(2.0).sleep();
+ 
           ROS_INFO_STREAM("Detecting marker");
           boost::shared_ptr<ar_track_alvar_msgs::AlvarMarkers const> shared_arr;
           ar_track_alvar_msgs::AlvarMarkers arr;

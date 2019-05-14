@@ -36,8 +36,8 @@ def handle_objs(msg):
     pub.publish(omsg)
 if __name__ == "__main__":
     rospy.init_node('novel_tf_publisher')
-    obj_topic = rospy.get_param('detected_object_topic', 'lidar_objects')
-    viz_topic = rospy.get_param('visualization_topic', 'marker_array')
+    obj_topic = rospy.get_param('~detected_object_topic', 'lidar_objects')
+    viz_topic = rospy.get_param('~visualization_topic', 'marker_array')
     pub = rospy.Publisher(viz_topic, MarkerArray,queue_size=5)
     rospy.Subscriber(obj_topic, NovelObjectArray, handle_objs)
 

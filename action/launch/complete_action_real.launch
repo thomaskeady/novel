@@ -1,5 +1,5 @@
 <launch>
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find expected_scan_generator)/rviz/view_laserscans.rviz"/>
+ <!--  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find expected_scan_generator)/rviz/view_laserscans.rviz"/>
 
   <param name="min_angle" value="0"/>
   <param name="max_angle" value="6.28319"/>
@@ -13,8 +13,9 @@
     <param name="in_scan_topic" value="raw_scan"/>
     <param name="covariance_threshold" value="0.008"/>
   </node>
+  <remap from="scan" to="raw_scan"/>
 
-  <arg name="map_file" value="/home/tkeady1/catkin_ws/src/530_707_independent_project/maps/hackerman_hallway_raph.yaml"/>
+  <arg name="map_file" value="/home/tkeady1/catkin_ws/src/530_707_independent_project/maps/hackerman_auditorium.yaml"/>
 
   <group>
     <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
@@ -22,8 +23,32 @@
     <include file="$(find turtlebot_navigation)/launch/includes/move_base.launch.xml"/>
   </group>
 
-  <include file="$(find detect_aruco)/launch/kinect_alvar_real.launch">
-  </include>
+  <include file="$(find detect_aruco)/launch/kinect_alvar_real.launch"/>
+-->
+  <include file="$(find novel_bringup)/launch/turtlebot_navigate.launch"/>
+
+  <arg name="marker_size" default="15.0" />
+    <arg name="max_new_marker_error" default="0.08" />
+    <arg name="max_track_error" default="0.2" />
+    <arg name="cam_image_topic" default="/camera/depth_registered/points" />
+    <arg name="cam_info_topic" default="/camera/rgb/camera_info" />
+    <arg name="output_frame" default="camera_link" />
+
+    <include file="$(find freenect_launch)/launch/freenect.launch">
+	<arg name="publish_tf" value="false"/>
+</include>
+
+    <node name="ar_track_alvar" pkg="ar_track_alvar" type="individualMarkers" respawn="false" output="screen">
+        <param name="marker_size"           type="double" value="$(arg marker_size)" />
+        <param name="max_new_marker_error"  type="double" value="$(arg max_new_marker_error)" />
+        <param name="max_track_error"       type="double" value="$(arg max_track_error)" />
+        <param name="output_frame"          type="string" value="$(arg output_frame)" />
+
+        <remap from="camera_image"  to="$(arg cam_image_topic)" />
+        <remap from="camera_info"   to="$(arg cam_info_topic)" />
+    </node>
+
+  <node name="detect" pkg="detect_aruco" type="detect_aruco" output="screen"/>
 
   <node name="kinect_action" pkg="action" type="kinect_actions" output="screen"/>
 
@@ -31,14 +56,15 @@
 
   <node name="testing" pkg="action" type="testing" output="screen"/>
 
-  <node name="rplidarNode"          pkg="rplidar_ros"  type="rplidarNode" output="screen">
-    <param name="serial_port"         type="string" value="/dev/ttyUSB0"/>
-    <param name="serial_baudrate"     type="int"    value="115200"/><!--A1/A2 -->
-    <!--param name="serial_baudrate"     type="int"    value="256000"--><!--A3 -->
+  <!-- <node name="rplidarNode" pkg="rplidar_ros"  type="rplidarNode" output="screen">
+    <param name="serial_port"         type="string" value="/dev/ttyUSB1"/>
+    <param name="serial_baudrate"     type="int"    value="115200"/>
     <param name="frame_id"            type="string" value="camera_depth_frame"/>
     <param name="inverted"            type="bool"   value="false"/>
     <param name="angle_compensate"    type="bool"   value="true"/>
   </node>
 
-  <node name="novel_tf_publisher" pkg="novel_lidar_detection" type="novel_publish_tf"/>
+  
+-->
+<node name="novel_tf_publisher" pkg="novel_lidar_detection" type="novel_publish_tf"/>
 </launch>

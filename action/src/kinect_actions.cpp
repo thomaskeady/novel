@@ -122,12 +122,13 @@ void Kinect_Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& m
 
       double x_dist = msg->detected_objects[i].pose.pose.position.x;
       double y_dist = msg->detected_objects[i].pose.pose.position.y;  
+      double dist = sqrt( pow(x_dist, 2) + pow(y_dist, 2) );
 
-      if (sqrt( pow(x_dist, 2) + pow(y_dist, 2) ) < min_marker_det_dist) {
-        ROS_INFO_STREAM(transform.getOrigin().x());
-        ROS_INFO_STREAM(transform.getOrigin().y());
-        ROS_INFO_STREAM(label);
- 
+      // ROS_INFO_STREAM(transform.getOrigin().x());
+      // ROS_INFO_STREAM(transform.getOrigin().y());
+      ROS_INFO_STREAM(dist);
+
+      if (dist < min_marker_det_dist && dist > 0.5) {
         putObjInMap(x_coord, y_coord);
 
         // depending on label, turn on bool for specific action

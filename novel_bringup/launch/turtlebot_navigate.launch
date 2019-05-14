@@ -22,22 +22,23 @@
 
 
 <group>
-<arg name="map_file" default="$(find expected_scan_generator)/../maps/marins_pod.yaml"/>
-  <!-- <include file="$(find turtlebot_gazebo)/launch/amcl_demo.launch"> -->
+<arg name="map_file" default="/home/tkeady1/catkin_ws/src/530_707_independent_project/maps/hackerman_auditorium.yaml"/>
+  <!-- <include file="$(find turtlebot_gazebo)/launch/amcl_demo.launch"/>
+  -->
   <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
-  <include file="$(find novel_bringup)/launch/include/novel_amcl.launch">
-    </include>
-
+  <include file="$(find novel_bringup)/launch/include/novel_amcl.launch">  
+  </include>
 </group>
 
 <node name="rviz" pkg="rviz" type="rviz" args="-d $(find expected_scan_generator)/rviz/view_laserscans.rviz"/>
-<param name="min_angle" value="0"/>
-<param name="max_angle" value="6.28319"/>
+<param name="min_angle" value="-3.14159"/>
+<param name="max_angle" value="3.14159"/>
 <param name="range" value="3.5"/>
 <node pkg="expected_scan_generator" type="expected_scan_generator" name="expected_scan_node">
-  
+
+
 </node>
-<node pkg="novel_lidar_detection" type="novel_lidar_detection" name="novel_lidar_detection">
+<node pkg="novel_lidar_detection" type="novel_lidar_detection" name="novel_lidar_detection" output="screen">
   <param name="out_scan_topic" value="scan"/>
   <param name="in_scan_topic" value="raw_scan"/>
   <param name="threshold" value="0.05"/>
@@ -45,13 +46,16 @@
 
 
 
-<arg name="custom_param_file" default="$(find turtlebot_navigation)/param/kinect_costmap_params.yaml"/>
+ <arg name="custom_param_file" default="$(find turtlebot_navigation)/param/kinect_costmap_params.yaml"/>
   <include file="$(find turtlebot_navigation)/launch/includes/move_base.launch.xml">
     <arg name="custom_param_file" value="$(arg custom_param_file)"/>
   </include>
-
-<node pkg="expected_scan_generator" type="novel_objects_filter" name="novel_objects_filter"/>
-
+  <node pkg="novel_lidar_detection" type="novel_publish_tf" name="viz"/>
+<param name="continous_publish" value="true"/>
+<node name="novel_filter" pkg="expected_scan_generator" type="novel_objects_filter">
+</node>
+<!-- <node pkg="expected_scan_generator" type="novel_objects_filter" name="novel_objects_filter"/>
+-->
 
 </launch>
 

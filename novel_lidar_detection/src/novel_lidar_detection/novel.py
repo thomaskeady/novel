@@ -2,6 +2,7 @@ import rospy
 from novel_msgs.msg import NovelObject, NovelObjectArray
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import PoseWithCovarianceStamped, Pose, Point, Quaternion
+from nav_msgs.msg import Odometry
 import numpy as np
 import math
 from copy import deepcopy
@@ -12,6 +13,7 @@ class NovelLidarDetection(object):
         out_scan_topic='filtered_scan', 
         detected_object_topic='/lidar_objects', 
         amcl_pose_topic='/amcl_pose',
+        odom_topic='/odom',
         threshold=0.05, 
         window_size=3, 
         window_step=2,
@@ -50,6 +52,7 @@ class NovelLidarDetection(object):
         rospy.Subscriber(in_scan_topic, LaserScan, self.ls_callback)
         rospy.Subscriber(expected_scan_topic, LaserScan, self.els_callback)
         rospy.Subscriber(amcl_pose_topic, PoseWithCovarianceStamped, self.pose_callback)
+        rospy.Subscriber(odom_topic, Odometry, self.odom_callback)
         self.out_scan_pub = rospy.Publisher(out_scan_topic, LaserScan, queue_size=5)
         self.detected_object_pub = rospy.Publisher(detected_object_topic, NovelObjectArray, queue_size=5)
         self.last_scan =  np.array([])
@@ -64,7 +67,12 @@ class NovelLidarDetection(object):
         self.covariance_threshold = covariance_threshold
         self.frame_id = frame_id
         self.pose_ready = False
-
+        self.odom_topic = odom_topic
+        self.moving = False
+    def odom_callback(self, msg):
+        l = msg.twist.twist.linear
+        a = msg.twist.twist.angular
+        self.moving = not np.allclose([l.x,l.y,l.z, a.x,a.y,a.z], np.zeros(6), atol=1e-2)
     def update_configuration(self,config, level):
         for key,value in config.items():
             if hasattr(self, key):
@@ -102,8 +110,9 @@ class NovelLidarDetection(object):
         """
         
         
-        if not any(self.last_expected):
+        if not any(self.last_expected) or self.moving:
             self.out_scan_pub.publish(self.last_scan_msg)
+            rospy.logwarn_throttle(5, "Robot is moving -- not detecting objects")
             return
         
         if  self.cov_mag > self.covariance_threshold:
@@ -123,7 +132,7 @@ class NovelLidarDetection(object):
         ls[np.isinf(ls)] = self.last_scan_msg.range_max
         els = self.last_expected
         els[np.isinf(els)] = self.last_scan_msg.range_max
-        #els = self.get_best_offset_es(ls, els)
+        els = self.get_best_offset_es(ls, els)
         er2 = els - ls
         kernel = np.ones(self.window_size) * 1.0/self.window_size
         # Convolution allows for small gaps to be filled
@@ -154,8 +163,10 @@ class NovelLidarDetection(object):
             pos_begin, pos_end = o
             com = int(math.floor((pos_begin+pos_end)/2))
             m = NovelObject()
-            s = self.calculate_segment_lengths(ls[pos_begin:pos_end])
+            # s = self.calculate_segment_lengths(ls[pos_begin:pos_end])
+            
             p = self.calculate_position_from_index(com, ls)
+            s = self.calculate_size(p, pos_end-pos_begin)
             if s >= self.size_threshold:
                 m.pose.pose = p
                 m.size = s
@@ -169,8 +180,8 @@ class NovelLidarDetection(object):
         # Publish filtered laser scan
         msg = deepcopy(self.last_scan_msg)
         u_range = np.array(msg.ranges)
-        real_expected = els*self.range_max
-        u_range[detected_objects] = real_expected[detected_objects]
+        # real_expected = els*self.range_max
+        u_range[detected_objects] = self.last_expected[detected_objects]
         intensities = np.zeros(len(u_range))
         intensities[detected_objects] = 1.0
         msg.ranges = list(u_range)
@@ -196,7 +207,11 @@ class NovelLidarDetection(object):
         x = last_scan[median_index] * math.cos(rad + math.pi) * self.range_max
         y = last_scan[median_index] * math.sin(rad + math.pi) * self.range_max
         return Pose(position=Point(x,y,z), orientation=Quaternion(w=1))
-
+    def calculate_size(self, p, a_sz):
+        p_ = p.position
+        dist = p_.x**2 + p_.y**2
+        dist = math.sqrt(dist)
+        return 2*dist*math.tan(a_sz/2.0)
     def pose_callback(self, msg):
         self.last_pose = msg.pose.pose
         self.last_pose_covariance = np.array(msg.pose.covariance)
