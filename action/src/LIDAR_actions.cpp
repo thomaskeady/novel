@@ -141,7 +141,7 @@ void LIDAR_Action::push_to_queue(const novel_msgs::NovelObjectArray::ConstPtr& m
     approach();
   }
 
-  ROS_INFO_STREAM(LIDAR_candidates.size());
+//  ROS_INFO_STREAM(LIDAR_candidates.size());
 }
 
 /*
