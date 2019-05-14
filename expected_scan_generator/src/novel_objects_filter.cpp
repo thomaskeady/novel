@@ -57,7 +57,7 @@ public:
         nh_.param<std::string>("lidar_objects_topic", in_topic,"lidar_objects");
         nh_.param<std::string>("fixed_frame", fixed_frame, "/map");
         nh_.param<bool>("continous_publish", continous_publish, false);
-        nh_.param<ros::Duration>("no_life", no_life, 1); 
+        nh_.param<ros::Duration>("no_life", no_life, ros::Duration(1.0)); 
 
         // Publishers
         filtered_novel_objects_pub = nh_.advertise<novel_msgs::NovelObjectArray>(out_topic, 100);
@@ -153,7 +153,7 @@ public:
         
         // What if something should be removed from this list? Too long without being seen?
         ros::Time check_time = ros::Time::now();
-        std::vector<geometry_msgs::PoseStamped>::iterator uit = uniques.begin();
+        std::vector<geometry_msgs::Pose>::iterator uit = uniques.begin();
         for (std::vector<geometry_msgs::PoseStamped>::iterator it = uniquesStamped.begin(); it != uniquesStamped.end(); ++it) 
         //for (int i = 0; i < uniquesStamped.size(); ++i) 
         {
@@ -161,7 +161,7 @@ public:
             if (check_time - it->header.stamp > no_life)
             {
                 uniquesStamped.erase(it);
-                uniqes.erase(uit++);
+                uniques.erase(uit++);
             }
         } // Could probably speed this up by not checking ones that were just added, oh well
 
