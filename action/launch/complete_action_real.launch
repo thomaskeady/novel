@@ -57,7 +57,9 @@
 
   <node name="kinect_action" pkg="action" type="kinect_actions" output="screen"/>
 
-  <node name="LIDAR_action" pkg="action" type="LIDAR_actions" output="screen"/>
+  <node name="LIDAR_action" pkg="action" type="LIDAR_actions" output="screen">
+    <param name="candidate_objs" value="filtered_lidar_objects"/>
+  </node>
 
   <node name="testing" pkg="action" type="testing" output="screen"/>
 

@@ -62,7 +62,7 @@ class Kinect_Action {
 Kinect_Action::Kinect_Action() {
   map_known = false;
   pose_known = false;
-  min_marker_det_dist = 1.5;
+  min_marker_det_dist = 1.3;
 
   det_sub = nh_.subscribe<novel_msgs::NovelObjectArray>("detected", 1, &Kinect_Action::det_callback, this);
   map_sub = nh_.subscribe<nav_msgs::OccupancyGrid>("map", 1, &Kinect_Action::map_callback, this);
@@ -209,7 +209,7 @@ void Kinect_Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& m
         rotateForBetterView(x_rot, y_rot);
       }
 
-      ros::Duration(0.5).sleep();
+      ros::Duration(4.0).sleep();
 
       std_msgs::Int8 done;
       done.data = 1;
@@ -217,7 +217,7 @@ void Kinect_Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& m
     } else {
       ROS_INFO_STREAM("Nothing detected.");
 
-      ros::Duration(0.5).sleep();
+      ros::Duration(4.0).sleep();
 
       std_msgs::Int8 done;
       done.data = 0;

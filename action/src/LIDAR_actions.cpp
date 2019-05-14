@@ -64,7 +64,9 @@ LIDAR_Action::LIDAR_Action(tf::TransformListener& listener_, MoveBaseClient& ac_
   min_marker_det_dist = .75;
  
 
-  det_sub = nh_.subscribe<novel_msgs::NovelObjectArray>("filtered_lidar_objects", 1000, &LIDAR_Action::push_to_queue, this);
+  std::string objs;
+  nh_.getParam("/LIDAR_action/candidate_objs", objs);
+  det_sub = nh_.subscribe<novel_msgs::NovelObjectArray>(objs, 1000, &LIDAR_Action::push_to_queue, this);
   map_sub = nh_.subscribe<nav_msgs::OccupancyGrid>("map", 1, &LIDAR_Action::map_callback, this);
   pose_sub = nh_.subscribe<geometry_msgs::PoseWithCovarianceStamped>("amcl_pose", 1, &LIDAR_Action::pose_callback, this);
 
