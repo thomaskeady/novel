@@ -18,7 +18,7 @@ typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseCl
 
 class LIDAR_Action {
   public:
-    LIDAR_Action(tf::TransformListener& listener_, MoveBaseClient& ac_);
+    LIDAR_Action(tf::TransformListener& listener_);
     void approach(ros::Time stamp);
 
   private:
@@ -36,7 +36,7 @@ class LIDAR_Action {
     tf::TransformListener &listener;
     ros::Publisher map_pub;
     ros::Publisher state_pub;
-    MoveBaseClient& ac;
+
     // static tf::TransformListener listener;
 
     nav_msgs::MapMetaData map_metadata;
@@ -54,15 +54,13 @@ class LIDAR_Action {
     std::queue< std::vector<double> > LIDAR_candidates;
 };
 
-LIDAR_Action::LIDAR_Action(tf::TransformListener& listener_, MoveBaseClient& ac_) :
-  listener(listener_),
-  ac(ac_)
+LIDAR_Action::LIDAR_Action(tf::TransformListener& listener_) :
+  listener(listener_)
  {
   map_known = false;
   pose_known = false;
   on = true;
   min_marker_det_dist = .75;
- 
 
   det_sub = nh_.subscribe<novel_msgs::NovelObjectArray>("filtered_lidar_objects", 1000, &LIDAR_Action::push_to_queue, this);
   map_sub = nh_.subscribe<nav_msgs::OccupancyGrid>("map", 1, &LIDAR_Action::map_callback, this);
@@ -105,7 +103,6 @@ Output
 */
 void LIDAR_Action::push_to_queue(const novel_msgs::NovelObjectArray::ConstPtr& msg) {
   // convert Point msg to grid coordinate wrt map frame
-  ROS_INFO("In callback");
   for (int i = 0; i < msg->detected_objects.size(); i++) {
     geometry_msgs::PoseStamped pose;
     geometry_msgs::PoseStamped pose_out;
@@ -161,7 +158,10 @@ Output
 */
 void LIDAR_Action::approach(ros::Time stamp) {
   // if we know pose of robot, plan is not currently executing, and msg of detected ids came after plan finished
-  
+  MoveBaseClient ac("move_base", true);
+  while (!ac.waitForServer(ros::Duration(5.0))) {
+    ROS_INFO("Waiting for move_base action server to come up");
+  }
   ROS_INFO("Ready to move");
   // ROS_INFO_STREAM(LIDAR_candidates.size());
   if (map_known && pose_known && on) {
@@ -211,8 +211,8 @@ void LIDAR_Action::approach(ros::Time stamp) {
         ac.sendGoal(goal);
 
         ac.waitForResult();
-        actionlib::SimpleClientGoalState actionstate = ac.getState();
-        if (actionstate == actionlib::SimpleClientGoalState::SUCCEEDED) {
+
+        if (ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED) {
           // start kinect detection
           std_msgs::Int8 kinect_detect;
           kinect_detect.data = 1;
@@ -252,7 +252,6 @@ void LIDAR_Action::approach(ros::Time stamp) {
             }
           }
         } else {
-          ROS_INFO("Action state: %s", actionstate.text_.c_str());
           ROS_INFO_STREAM("Could not approach LIDAR-detected object. Skipping LIDAR action.");
         }
 
@@ -317,10 +316,7 @@ void LIDAR_Action::putObjInMap(double obj_x, double obj_y) { //, double robot_x,
 int main(int argc, char** argv){
   ros::init(argc, argv, "action");
   tf::TransformListener listener;
-  MoveBaseClient ac("move_base", true);
-  while (!ac.waitForServer(ros::Duration(5.0))) {
-    ROS_INFO("Waiting for move_base action server to come up");
-  }
-  LIDAR_Action la = LIDAR_Action(listener, ac);
+  LIDAR_Action la = LIDAR_Action(listener);
+  
   ros::spin();
 }

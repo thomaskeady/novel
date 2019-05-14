@@ -55,12 +55,14 @@ class Kinect_Action {
     std::vector<std::string> rotate;
     
     double min_marker_det_dist;
+
+    ros::Time pose_stamp;
 };
 
 Kinect_Action::Kinect_Action() {
   map_known = false;
   pose_known = false;
-  min_marker_det_dist = 1.0;
+  min_marker_det_dist = 1.5;
 
   det_sub = nh_.subscribe<novel_msgs::NovelObjectArray>("detected", 1, &Kinect_Action::det_callback, this);
   map_sub = nh_.subscribe<nav_msgs::OccupancyGrid>("map", 1, &Kinect_Action::map_callback, this);
@@ -111,7 +113,7 @@ void Kinect_Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& m
 
       tf::StampedTransform transform;
       try {
-        listener.lookupTransform("/map", "/ar_marker_"+label, ros::Time(0), transform);
+        listener.lookupTransform("/map", "/ar_marker_"+label, pose_stamp, transform);
       } catch (tf::TransformException ex) {
         ROS_ERROR("%s", ex.what());
         ros::Duration(1.0).sleep();
@@ -128,7 +130,7 @@ void Kinect_Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& m
       // ROS_INFO_STREAM(transform.getOrigin().y());
       ROS_INFO_STREAM(dist);
 
-      if (dist < min_marker_det_dist && dist > 0.5) {
+      if (dist < min_marker_det_dist && dist > 0.1) {
         putObjInMap(x_coord, y_coord);
 
         // depending on label, turn on bool for specific action
@@ -158,7 +160,7 @@ void Kinect_Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& m
         break;
       }   
     }
-
+    std_msgs::Int8 done;
     // do action if new ids detected
     if (!nothing_new && detected_ids.size() > 0) {
       prev = detected_ids;
@@ -166,7 +168,7 @@ void Kinect_Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& m
       // get robot coordinates with respect to map frame
       tf::StampedTransform transform;
       try {
-        listener.lookupTransform("/map", "/base_link", ros::Time(0), transform);
+        listener.lookupTransform("/map", "/base_link", pose_stamp, transform);
       } catch (tf::TransformException ex) {
         ROS_ERROR("%s", ex.what());
         ros::Duration(1.0).sleep();
@@ -211,7 +213,7 @@ void Kinect_Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& m
 
       std_msgs::Int8 done;
       done.data = 1;
-      done_moving.publish(done);
+      
     } else {
       ROS_INFO_STREAM("Nothing detected.");
 
@@ -219,10 +221,18 @@ void Kinect_Action::det_callback(const novel_msgs::NovelObjectArray::ConstPtr& m
 
       std_msgs::Int8 done;
       done.data = 0;
+      
+    
+    }
+    ros::Time time_start = ros::Time::now();
+    ros::Duration pubtime(2.0);
+    while (ros::Time::now() - time_start < pubtime){
       done_moving.publish(done);
+      ros::Duration(0.1).sleep();
     }
   }
-
+  
+  
   std_msgs::Int8 turn_on;
   turn_on.data = 0;
   state_pub.publish(turn_on);
@@ -259,6 +269,7 @@ Output
 void Kinect_Action::pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg) {
   pose_known = true;
   pose = msg->pose;
+  pose_stamp = msg->header.stamp;
 }
 
 /*
@@ -288,7 +299,7 @@ void Kinect_Action::runAway(int x_run, int y_run) {
     // get robot coordinates with respect to map frame
     tf::StampedTransform transform;
     try {
-      listener.lookupTransform("/map", "/base_link", ros::Time(0), transform);
+      listener.lookupTransform("/map", "/base_link", pose_stamp, transform);
     } catch (tf::TransformException ex) {
       ROS_ERROR("%s", ex.what());
       ros::Duration(1.0).sleep();

@@ -50,6 +50,7 @@ public:
         id(0)
 
 	{
+        //ROS_INFO(" *************************** Construcitng NOFilter *************************** ");
         std::string out_topic;
         std::string in_topic;
         nh_.param<float>("distance_thresh", distance_thresh, 0.5);
@@ -57,14 +58,15 @@ public:
         nh_.param<std::string>("lidar_objects_topic", in_topic,"lidar_objects");
         nh_.param<std::string>("fixed_frame", fixed_frame, "/map");
         nh_.param<bool>("continous_publish", continous_publish, false);
-        nh_.param<ros::Duration>("no_life", no_life, 1); 
-
+        int nl;
+        nh_.param<int>("no_life", nl, 5); 
+        no_life = ros::Duration(nl);
         // Publishers
         filtered_novel_objects_pub = nh_.advertise<novel_msgs::NovelObjectArray>(out_topic, 100);
 
 		// Subscribers
 		novel_objects_sub = nh_.subscribe(in_topic, 100, &NOFilter::novelObjectsCb, this);
-		ROS_INFO("Initialized NOFilter");
+		//ROS_INFO("Initialized NOFilter");
 	}
 
     void novelObjectsCb(const novel_msgs::NovelObjectArray::ConstPtr& msg) 
@@ -72,6 +74,7 @@ public:
         // Get coords of new novel objects
         // If close enough to existing objects, consider same & update object position
         // Publish
+        //ROS_INFO("inside NOCB, %d novel objects", (int) msg->detected_objects.size()); 
 
         ros::Time cb_time = ros::Time::now();
 
@@ -108,7 +111,7 @@ public:
             {
                 
                 float dist = sqrt(pow(spose_out.pose.position.x - it->position.x, 2) + pow(spose_out.pose.position.y - it->position.y, 2));
-                // ROS_INFO("Distance %f", dist);
+                // //ROS_INFO("Distance %f", dist);
                 if (dist < closest_distance)
                 {
                     matched_existing = true;
@@ -128,7 +131,7 @@ public:
                 // Create new object in uniques
                 //msg->detected_objects[i].id = id; // If error cause const, change uniques.back
                 //++id;
-                ROS_INFO("New object detected");
+                //ROS_INFO("New object detected");
                 if (!continous_publish) {
                     noa.detected_objects.push_back(msg->detected_objects[i]);
 		            noa.detected_objects.back().id = id++;
@@ -141,7 +144,7 @@ public:
             } 
             else 
             {
-                // ROS_INFO("Connected object");
+                //ROS_INFO("Connected object");
                 // Update closest_NO
                 // Just take an average for now
                 // Should size or angular_size play a role in this too?
@@ -151,21 +154,29 @@ public:
 
         } 
         
+        //ROS_INFO("Checking lifetimes");
+        //ROS_INFO("uniques length: %d", (int) uniques.size());
+        //ROS_INFO("uniquesStamped length: %d", (int) uniquesStamped.size());
         // What if something should be removed from this list? Too long without being seen?
         ros::Time check_time = ros::Time::now();
-        std::vector<geometry_msgs::PoseStamped>::iterator uit = uniques.begin();
+        std::vector<geometry_msgs::Pose>::iterator uit = uniques.begin();
         for (std::vector<geometry_msgs::PoseStamped>::iterator it = uniquesStamped.begin(); it != uniquesStamped.end(); ++it) 
         //for (int i = 0; i < uniquesStamped.size(); ++i) 
         {
+            //ROS_INFO("Looping");
             //if (check_time - uniquesStamped[i].header.stamp > no_life)
             if (check_time - it->header.stamp > no_life)
             {
-                uniquesStamped.erase(it);
-                uniqes.erase(uit++);
+                //ROS_INFO("Before remove from uniquesStamped");
+                uniquesStamped.erase(it--);
+                //ROS_INFO("Before remove from uniques");
+                uniques.erase(uit--);
+                //ROS_INFO("Removed both");
+                uit++; 
             }
         } // Could probably speed this up by not checking ones that were just added, oh well
 
-        
+        //ROS_INFO("Publishing time");
         filtered_novel_objects_pub.publish(noa);
     }
 

@@ -217,7 +217,7 @@ int main (int argc, char** argv)
 	ros::Rate wait(2);
 	while (!myGenerator.subscribedTopicsActive()) { wait.sleep(); ros::spinOnce(); };
 
-	ros::Rate r(10);
+	ros::Rate r(100);
 	while (ros::ok()) 
 	{
 		ros::spinOnce();

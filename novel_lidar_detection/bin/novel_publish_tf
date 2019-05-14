@@ -17,7 +17,7 @@ def handle_objs(msg):
         frame_name = o.classification if o.classification else  'detected_object_' + str(o.id) 
         m = Marker(pose=o.pose.pose, type=Marker.CUBE, scale=Vector3(0.1, 0.1, 0.1), color=ColorRGBA(1,0,0,1), lifetime=rospy.Duration.from_sec(0.5))
         #m.header.frame_id = msg.header.frame_id
-        m.header.frame_id = "base_link"
+        m.header.frame_id = msg.header.frame_id
         m.ns = frame_name
         omsg.markers.append(m)
         # print('Sending transform {} {} {} {} {}'.format((p.x, p.y, p.z),

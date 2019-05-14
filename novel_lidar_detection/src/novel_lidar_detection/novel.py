@@ -126,13 +126,17 @@ class NovelLidarDetection(object):
         if np.array_equal(self.last_expected,self.last_scan):
             self.out_scan_pub.publish(self.last_scan_msg)
             return
-
+        mr1 = self.last_scan_msg.range_max
+        mr2 = self.last_expected_msg.range_max
+        max_range = max([mr1, mr2])
+        ls = self.last_scan/max_range
+        ls[np.isinf(ls)] = 1
+        els = self.last_expected/max_range
+        els[np.isinf(els)] = 1
+        # best_offset = self.get_best_offset_es(ls, els)
+        best_offset= 0
+        els = np.roll(els, best_offset)
         
-        ls = self.last_scan
-        ls[np.isinf(ls)] = self.last_scan_msg.range_max
-        els = self.last_expected
-        els[np.isinf(els)] = self.last_scan_msg.range_max
-        els = self.get_best_offset_es(ls, els)
         er2 = els - ls
         kernel = np.ones(self.window_size) * 1.0/self.window_size
         # Convolution allows for small gaps to be filled
@@ -165,7 +169,7 @@ class NovelLidarDetection(object):
             m = NovelObject()
             # s = self.calculate_segment_lengths(ls[pos_begin:pos_end])
             
-            p = self.calculate_position_from_index(com, ls)
+            p = self.calculate_position_from_index(pos_begin, pos_end, ls*max_range)
             s = self.calculate_size(p, pos_end-pos_begin)
             if s >= self.size_threshold:
                 m.pose.pose = p
@@ -180,8 +184,8 @@ class NovelLidarDetection(object):
         # Publish filtered laser scan
         msg = deepcopy(self.last_scan_msg)
         u_range = np.array(msg.ranges)
-        # real_expected = els*self.range_max
-        u_range[detected_objects] = self.last_expected[detected_objects]
+        real_expected = els*max_range
+        u_range[detected_objects] = real_expected[detected_objects]
         intensities = np.zeros(len(u_range))
         intensities[detected_objects] = 1.0
         msg.ranges = list(u_range)
@@ -198,20 +202,22 @@ class NovelLidarDetection(object):
             if err < best_err:
                 best_offset = i
                 best_err = err
-        return np.roll(expected_scan, best_offset)
+        return best_offset
 
-    def calculate_position_from_index(self, median_index, last_scan):
+    def calculate_position_from_index(self, begin, end, last_scan):
 
-        z = self.last_pose.position.z
+        median_index = int((begin+end)/2.0)
         rad = float(median_index)/len(last_scan) * 2 * math.pi
-        x = last_scan[median_index] * math.cos(rad + math.pi) * self.range_max
-        y = last_scan[median_index] * math.sin(rad + math.pi) * self.range_max
-        return Pose(position=Point(x,y,z), orientation=Quaternion(w=1))
+        # x = np.mean(last_scan[begin:end]) * math.cos(rad + math.pi) 
+        # y = np.mean(last_scan[begin:end]) * math.sin(rad + math.pi)
+        x = last_scan[median_index] * math.cos(rad) 
+        y = last_scan[median_index] * math.sin(rad)
+        return Pose(position=Point(x,y,0), orientation=Quaternion(w=1))
     def calculate_size(self, p, a_sz):
         p_ = p.position
         dist = p_.x**2 + p_.y**2
         dist = math.sqrt(dist)
-        return 2*dist*math.tan(a_sz/2.0)
+        return 2*dist*math.tan(math.radians(a_sz)/2.0)
     def pose_callback(self, msg):
         self.last_pose = msg.pose.pose
         self.last_pose_covariance = np.array(msg.pose.covariance)
@@ -223,11 +229,12 @@ class NovelLidarDetection(object):
         self.last_scan_msg = msg
         if self.pose_ready:
             self.range_max = msg.range_max
-            self.last_scan = np.array(msg.ranges)/self.range_max
+            self.last_scan = np.array(msg.ranges)
             # self.pose_ready = False
 
     def els_callback(self, msg):
-        self.last_expected = np.array(msg.ranges)/self.range_max
+        self.last_expected = np.array(msg.ranges)
+        self.last_expected_msg = msg
         self.detect()
 
     def calculate_segment_lengths(self, p):

@@ -25,7 +25,12 @@
 
   <include file="$(find detect_aruco)/launch/kinect_alvar_real.launch"/>
 -->
-  <include file="$(find novel_bringup)/launch/turtlebot_navigate.launch"/>
+  <arg name="map_file" default="/home/tkeady1/catkin_ws/src/530_707_independent_project/maps/hacker_full.yaml"/>
+
+  <include file="$(find novel_bringup)/launch/turtlebot_navigate.launch">
+  <arg name="map_file" default="$(arg map_file)"/>
+
+  </include>
 
   <arg name="marker_size" default="15.0" />
     <arg name="max_new_marker_error" default="0.08" />
@@ -66,5 +71,5 @@
 
   
 -->
-<node name="novel_tf_publisher" pkg="novel_lidar_detection" type="novel_publish_tf"/>
+
 </launch>
