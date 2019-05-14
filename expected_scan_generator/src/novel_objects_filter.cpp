@@ -31,11 +31,13 @@ private:
 
 	// Other
 	std::vector<geometry_msgs::Pose> uniques;
+    std::vector<geometry_msgs::PoseStamped> uniquesStamped; // Mirrors uniques
     float distance_thresh;
     int8_t id; 
     std::string fixed_frame;
     bool continous_publish;
     tf::TransformListener &listener_;
+    ros::Duration no_life; // Time in s since last seen before removing NO
 
 public:
     NOFilter(ros::NodeHandle& nh, tf::TransformListener& listener) :
@@ -55,6 +57,7 @@ public:
         nh_.param<std::string>("lidar_objects_topic", in_topic,"lidar_objects");
         nh_.param<std::string>("fixed_frame", fixed_frame, "/map");
         nh_.param<bool>("continous_publish", continous_publish, false);
+        nh_.param<ros::Duration>("no_life", no_life, 1); 
 
         // Publishers
         filtered_novel_objects_pub = nh_.advertise<novel_msgs::NovelObjectArray>(out_topic, 100);
@@ -69,6 +72,9 @@ public:
         // Get coords of new novel objects
         // If close enough to existing objects, consider same & update object position
         // Publish
+
+        ros::Time cb_time = ros::Time::now();
+
         novel_msgs::NovelObjectArray noa;
         if(continous_publish){
             noa.header = msg->header;
@@ -88,6 +94,7 @@ public:
             spose.pose = current_obj.pose.pose;
             geometry_msgs::PoseStamped spose_out;
             //spose_out = spose;           
+            spose_out.header.stamp = cb_time;
 
             try{
                 listener_.waitForTransform(fixed_frame, "/base_scan",msg->header.stamp, ros::Duration(3.0));
@@ -127,31 +134,37 @@ public:
 		            noa.detected_objects.back().id = id++;
                 }
                 uniques.push_back(spose_out.pose);
+
+                //spose_out.header.stamp = cb_time;
+                uniquesStamped.push_back(spose_out);
+
             } 
             else 
             {
                 // ROS_INFO("Connected object");
                 // Update closest_NO
                 // Just take an average for now
-                // Should size or angular_size play a role in this too
+                // Should size or angular_size play a role in this too?
                 closest_NO->position.x = (closest_NO->position.x + spose_out.pose.position.x)/2;
                 closest_NO->position.y = (closest_NO->position.y + spose_out.pose.position.y)/2;
             }
 
-        } // What if something should be removed from this list? Too long without being seen?
+        } 
+        
+        // What if something should be removed from this list? Too long without being seen?
+        ros::Time check_time = ros::Time::now();
+        std::vector<geometry_msgs::PoseStamped>::iterator uit = uniques.begin();
+        for (std::vector<geometry_msgs::PoseStamped>::iterator it = uniquesStamped.begin(); it != uniquesStamped.end(); ++it) 
+        //for (int i = 0; i < uniquesStamped.size(); ++i) 
+        {
+            //if (check_time - uniquesStamped[i].header.stamp > no_life)
+            if (check_time - it->header.stamp > no_life)
+            {
+                uniquesStamped.erase(it);
+                uniqes.erase(uit++);
+            }
+        } // Could probably speed this up by not checking ones that were just added, oh well
 
-        // Need to construct to_publish?
-	
-	
-        //novel_msgs::NovelObject to_publish[uniques.size()]; // May need to just clear instead of re-declare
-        //int count = 0;
-        //for (std::vector<novel_msgs::NovelObject>::iterator it = uniques.begin() ; it != uniques.end(); ++it)
-	//for (int i = 0; i < uniques.size(); ++i) 
-        //{
-            //to_publish[count] = it;
-          //  to_publish[count] = uniques[i];
-            //++count;
-        //}
         
         filtered_novel_objects_pub.publish(noa);
     }
