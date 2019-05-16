@@ -197,3 +197,7 @@ install(PROGRAMS
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+#add_executable(novel_objects_filter.cpp src/novel_objects_filter.cpp)
+#target_link_libraries(novel_objects_filter ${catkin_LIBRARIES})
+

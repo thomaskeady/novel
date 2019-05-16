@@ -15,6 +15,8 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   sensor_msgs
   std_msgs
+  novel_msgs
+  tf
 )
 
 ## System dependencies are found with CMake's conventions
@@ -206,5 +208,7 @@ include_directories(
 add_executable(expected_scan_generator src/expected_scan_node.cpp)
 target_link_libraries(expected_scan_generator ${catkin_LIBRARIES})
 
+add_executable(novel_objects_filter src/novel_objects_filter.cpp)
+target_link_libraries(novel_objects_filter ${catkin_LIBRARIES})
 
 
