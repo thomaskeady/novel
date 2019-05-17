@@ -1,7 +1,7 @@
 import rospy
 from novel_msgs.msg import NovelObject, NovelObjectArray
 from sensor_msgs.msg import LaserScan
-from geometry_msgs.msg import PoseWithCovarianceStamped, Pose, Point, Quaternion
+from geometry_msgs.msg import PoseStamped, Pose, Point, Quaternion
 from nav_msgs.msg import Odometry
 import numpy as np
 import math
@@ -51,7 +51,7 @@ class NovelLidarDetection(object):
         """
         rospy.Subscriber(in_scan_topic, LaserScan, self.ls_callback)
         rospy.Subscriber(expected_scan_topic, LaserScan, self.els_callback)
-        rospy.Subscriber(amcl_pose_topic, PoseWithCovarianceStamped, self.pose_callback)
+        rospy.Subscriber(amcl_pose_topic, PoseStamped, self.pose_callback)
         rospy.Subscriber(odom_topic, Odometry, self.odom_callback)
         self.out_scan_pub = rospy.Publisher(out_scan_topic, LaserScan, queue_size=5)
         self.detected_object_pub = rospy.Publisher(detected_object_topic, NovelObjectArray, queue_size=5)
@@ -115,10 +115,12 @@ class NovelLidarDetection(object):
             rospy.logwarn_throttle(5, "Robot is moving -- not detecting objects")
             return
         
+	'''
         if  self.cov_mag > self.covariance_threshold:
             rospy.logwarn_throttle(5, "Covariance too high ({}) to filter reliably -- using raw scan".format(self.cov_mag))
             self.out_scan_pub.publish(self.last_scan_msg)
             return
+	'''
 
         if self.last_scan.shape != self.last_expected.shape:
             rospy.logerr('Expected scan (n={}) is not the same size as received scan (n={})'.format(self.last_expected.shape,self.last_scan.shape))
@@ -172,11 +174,11 @@ class NovelLidarDetection(object):
             p = self.calculate_position_from_index(pos_begin, pos_end, ls*max_range)
             s = self.calculate_size(p, pos_end-pos_begin)
             if s >= self.size_threshold:
-                m.pose.pose = p
+                m.pose = p
                 m.size = s
                 m.angular_size = pos_end - pos_begin
                 # Make this covariance better?
-                m.pose.covariance = list(np.zeros((6,6)).flatten())
+                #m.pose.covariance = list(np.zeros((6,6)).flatten())
                 m.id = i
                 msg.detected_objects.append(m)
         self.detected_object_pub.publish(msg)
@@ -219,9 +221,9 @@ class NovelLidarDetection(object):
         dist = math.sqrt(dist)
         return 2*dist*math.tan(math.radians(a_sz)/2.0)
     def pose_callback(self, msg):
-        self.last_pose = msg.pose.pose
-        self.last_pose_covariance = np.array(msg.pose.covariance)
-        self.cov_mag = np.linalg.norm(self.last_pose_covariance)
+        self.last_pose = msg.pose
+        #self.last_pose_covariance = np.array(msg.pose.covariance)
+        #self.cov_mag = np.linalg.norm(self.last_pose_covariance)
         self.pose_ready = True
         # rospy.logwarn_throttle(10, 'Pose msg received: cov: {} mag: {}'.format(self.last_pose_covariance, self.cov_mag ))
         self.last_pose_header = msg.header

@@ -15,7 +15,7 @@ The purpose of this node is to take the estimated robot pose and the known map o
 #include "tf/tf.h"
 //#include "tf/transformations.h"
 #include "sensor_msgs/LaserScan.h"
-#include "geometry_msgs/PoseWithCovarianceStamped.h"
+#include "geometry_msgs/PoseStamped.h"
 #include <cmath>
 #include <limits>
 class ExpectedScanGenerator
@@ -40,7 +40,7 @@ private:
 	std::vector<signed char, std::allocator<signed char> > grid;
 	
 	// Append "stamped" if want header as well
-	geometry_msgs::PoseWithCovariance pose;
+	geometry_msgs::Pose pose;
 
 	// Laser Parameters
 	float min_angle;
@@ -76,8 +76,8 @@ public:
 		nh_.param<float>("map_resolution", map_resolution, 0.05);
 		nh_.param<float>("min_angle", min_angle, -3.14);
 		nh_.param<float>("max_angle", max_angle, 3.14);
-		nh_.param<int>("points_per_scan", points_per_scan, 360);
-		nh_.param<float>("range", range, 10);
+		nh_.param<int>("points_per_scan", points_per_scan, 270);
+		nh_.param<float>("range", range, 5);
 		nh_.param<bool>("map_known", map_known, false);
 		nh_.param<bool>("pose_known", pose_known, false);
 		angle_increment = std::abs(min_angle - max_angle)/(float)points_per_scan;
@@ -90,7 +90,7 @@ public:
 		to_publish.range_max = range;
 		to_publish.range_min = 0.153; // Experimentally determined from rplidar
 
-		to_publish.header.frame_id = "/camera_depth_frame";
+		to_publish.header.frame_id = "/base_laser_link"; // TODO make this the actual lidar location
 
 		ROS_INFO("Initialized ExpectedScanNode");
 	}
@@ -107,7 +107,7 @@ public:
 	}
 
 	// For now just store the data and run it at a constant rate in the main loop 
-	void poseCb(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg) 
+	void poseCb(const geometry_msgs::PoseStamped::ConstPtr& msg) 
 	{
 		//ROS_INFO("poseCb");
 		pose_known = true;
@@ -133,7 +133,7 @@ public:
 		// end the scan when it hits its first occupied point (they should all be binary right? 
 		curr_scan_angle = min_angle;
 		
-		geometry_msgs::Quaternion q = pose.pose.orientation;// Can tidy this up later
+		geometry_msgs::Quaternion q = pose.orientation;// Can tidy this up later
 		tf::Quaternion tftest(q.x, q.y, q.z, q.w);				
 		tf::Matrix3x3 m(tftest);
 		double roll, pitch, yaw;
@@ -160,8 +160,8 @@ public:
 				//ROS_INFO("Per step");
 
 				// POSE IS IN METERS, STEPS ARE IN 0.05 METERS (one per cell, =resolution)
-				int x_coord = (int)round((pose.pose.position.x-map_metadata.origin.position.x)/map_resolution + std::cos(map_scan_angle)*step); // Need to round them individually or only after? I think after but confirm TODO
-				int y_coord = (int)round((pose.pose.position.y-map_metadata.origin.position.y)/map_resolution + std::sin(map_scan_angle)*step); // Check angle units TODO
+				int x_coord = (int)round((pose.position.x-map_metadata.origin.position.x)/map_resolution + std::cos(map_scan_angle)*step); // Need to round them individually or only after? I think after but confirm TODO
+				int y_coord = (int)round((pose.position.y-map_metadata.origin.position.y)/map_resolution + std::sin(map_scan_angle)*step); // Check angle units TODO
 				
 				int index = (y_coord)*map_metadata.width + x_coord;
 				//ROS_INFO("OG val of (%d, %d): %d\tindex: %d", x_coord, y_coord, grid[index], index);
